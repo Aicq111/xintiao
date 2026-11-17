@@ -1,0 +1,39 @@
+# 薪跳 · iOS 云构建（GitHub Actions，免费 macOS 环境）
+name: ios-build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter 版本
+        run: flutter --version
+
+      - name: 拉取依赖
+        run: flutter pub get
+
+      - name: 运行引擎测试（13 项）
+        run: flutter test
+
+      - name: 构建 iOS（无签名）
+        run: flutter build ios --release --no-codesign
+
+      - name: 上传 Runner.app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Runner-app
+          path: build/ios/iphoneos/Runner.app
+          if-no-files-found: error
