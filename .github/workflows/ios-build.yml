@@ -8,6 +8,10 @@ on:
 
 jobs:
   build-ios:
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: [1, 2, 3]
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -48,6 +52,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Runner-app
+          name: Runner-app-${{ matrix.slot }}
           path: build/ios/iphoneos/Runner.app
           if-no-files-found: error
