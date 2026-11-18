@@ -6,7 +6,7 @@
 
 | 东西 | 费用 | 用途 |
 |---|---|---|
-| GitHub 账号 | 免费 | 放代码、触发云构建 |
+| GitHub 账号（仓库已建好，需公开） | 免费 | 云构建（GitHub Actions） |
 | Apple ID（平时用的就行） | 免费 | 签名（有效期 7 天，自动续签） |
 | iPhone + 数据线 | — | 首次安装 AltStore |
 | 电脑装 AltServer | 免费 | 签名与续签服务 |
@@ -32,14 +32,16 @@ git push -u origin main
 
 ---
 
-## 第二步：Codemagic 云构建（Windows 也能出 iOS 包）
+## 第二步：GitHub Actions 云构建（自动进行）
 
-1. 打开 https://codemagic.io → **Sign in with GitHub**；
-2. **Add application** → 选择 `xintiao` 仓库 → 自动读取工程里的 `codemagic.yaml`；
-3. 出现工作流 **ios-build** → 点 **Start new build**（免费额度 500 分钟/月，一次约 8–12 分钟）；
-4. 构建完成后在 **Artifacts** 里下载 `Runner.app`（未签名包）。
+构建已配置为**推送代码即自动开始**，无需你操作：
 
-> 若构建失败：把 Codemagic 构建日志（Build log）复制发给我，我来修复。
+1. 打开 https://github.com/Aicq111/xintiao/actions 查看构建状态（黄色 = 构建中，绿色 = 成功，红色 = 失败）；
+2. 每次构建约 8～15 分钟，免费额度内；
+3. 成功后点进该次构建，页面底部 **Artifacts** 区 → 下载 **Runner-app** 压缩包（zip）。
+
+> 若构建失败：把 Actions 里红色报错内容发给我，我修复后推送，构建会自动重跑。
+> 若以后想手动重跑：Actions → 选中工作流 → **Run workflow**。
 
 ---
 
@@ -81,5 +83,5 @@ git push -u origin main
 |---|---|
 | 提示「不受信任的开发者」 | 设置 → 通用 → VPN 与设备管理 → 信任 |
 | 7 天到期没自动续签 | 手机连电脑（或同 WiFi），打开 AltServer 与 AltStore 重新签名即可，App 数据不受影响 |
-| Codemagic 构建失败 | 发我构建日志 |
+| Codemagic 构建失败 | 已弃用，构建走 GitHub Actions（见上） |
 | 小组件空白 | 先打开一次 App；再在桌面重新添加小组件 |

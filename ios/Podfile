@@ -1,5 +1,5 @@
 # Flutter 标准 Podfile（shared_preferences 等插件需要）
-platform :ios, '12.0'
+platform :ios, '13.0'
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
