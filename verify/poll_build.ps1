@@ -1,7 +1,7 @@
 # 轮询 GitHub Actions 构建状态，直到最新一次运行结束
 $ErrorActionPreference = 'Continue'
 $headers = @{ 'User-Agent' = 'xintiao-poll' }
-$maxLoops = 45
+$maxLoops = 90
 
 for ($i = 1; $i -le $maxLoops; $i++) {
     try {
@@ -13,7 +13,7 @@ for ($i = 1; $i -le $maxLoops; $i++) {
             try {
                 $jobs = Invoke-RestMethod -Uri "https://api.github.com/repos/Aicq111/xintiao/actions/runs/$($latest.id)/jobs" -Headers $headers -TimeoutSec 60
                 foreach ($j in $jobs.jobs) {
-                    Write-Host ("job name={0} conclusion={1}" -f $j.name, $j.conclusion)
+                    Write-Host ("job id={0} name={1} conclusion={2}" -f $j.id, $j.name, $j.conclusion)
                     foreach ($st in $j.steps) {
                         Write-Host ("  step: {0} -> {1}" -f $st.name, $st.conclusion)
                     }

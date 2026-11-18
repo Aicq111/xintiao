@@ -9,6 +9,7 @@ on:
 jobs:
   build-ios:
     runs-on: macos-latest
+    timeout-minutes: 45
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -29,9 +30,19 @@ jobs:
         run: flutter test
 
       - name: 构建 iOS（无签名）
-        run: flutter build ios --release --no-codesign
+        run: |
+          set -o pipefail
+          flutter build ios --release --no-codesign 2>&1 | tee build.log
+
+      - name: 失败时导出日志为注解（供远程诊断）
+        if: failure()
+        run: |
+          echo "===== build.log 尾部 ====="
+          tail -n 120 build.log
+          tail -n 80 build.log | sed 's/^/::error::/'
 
       - name: 上传 Runner.app
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: Runner-app
