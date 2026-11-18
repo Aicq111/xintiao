@@ -26,6 +26,9 @@ jobs:
       - name: 拉取依赖
         run: flutter pub get
 
+      - name: 关闭 Swift Package Manager（走 CocoaPods）
+        run: flutter config --no-enable-swift-package-manager
+
       - name: 运行引擎测试（13 项）
         run: flutter test
 
@@ -38,8 +41,8 @@ jobs:
         if: failure()
         run: |
           echo "===== build.log 尾部 ====="
-          tail -n 120 build.log
-          tail -n 80 build.log | sed 's/^/::error::/'
+          tail -n 300 build.log
+          tail -n 300 build.log | nl -ba | sed 's/^/::error::/'
 
       - name: 上传 Runner.app
         if: success()
