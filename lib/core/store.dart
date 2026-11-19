@@ -137,7 +137,7 @@ class AppState {
 
   AppState({
     List<IncomeData>? incomes,
-    this.schedule = const ScheduleData(),
+    this.schedule = ScheduleData(),
     Map<String, SpecialDayData>? specials,
     this.minUnitIdx = 3,
     this.decimals = 3,
