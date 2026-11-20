@@ -109,8 +109,9 @@ class ScheduleCfg {
   }
 }
 
-/// 特殊日类型：加班（倍率）/ 请假（时段计薪 0）/ 调休（整天计薪 0）
-enum SpecialType { overtime, leave, off }
+/// 特殊日类型：加班（倍率）/ 请假（时段计薪 0）/ 调休（整天计薪 0）/
+/// 排班覆盖（用指定班次）/ 休息覆盖（全天计薪 0，OCR 识别用）
+enum SpecialType { overtime, leave, off, shiftOverride, rest }
 
 class SpecialDay {
   final SpecialType type;
@@ -131,6 +132,19 @@ class SpecialDay {
 
   const SpecialDay.off()
       : type = SpecialType.off,
+        mult = 1,
+        shift = null,
+        leaveStartMin = null,
+        leaveEndMin = null;
+
+  const SpecialDay.shiftOverride(Shift this.shift)
+      : type = SpecialType.shiftOverride,
+        mult = 1,
+        leaveStartMin = null,
+        leaveEndMin = null;
+
+  const SpecialDay.rest()
+      : type = SpecialType.rest,
         mult = 1,
         shift = null,
         leaveStartMin = null,
@@ -223,8 +237,13 @@ String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
 List<DayInterval> dayIntervals(DateTime day, ScheduleMode mode,
     Map<String, SpecialDay> specials, [ScheduleCfg? cfg]) {
   final sp = specials[_key(day)];
-  if (sp != null && sp.type == SpecialType.off) return const [];
+  if (sp != null && (sp.type == SpecialType.off || sp.type == SpecialType.rest)) {
+    return const [];
+  }
   var shift = shiftForDay(mode, day, cfg);
+  if (sp != null && sp.type == SpecialType.shiftOverride && sp.shift != null) {
+    shift = sp.shift; // 排班覆盖：按识别出的班次计薪
+  }
   if (sp != null && sp.type == SpecialType.overtime && shift == null) {
     shift = sp.shift; // 休息日加班：用加班时段
   }

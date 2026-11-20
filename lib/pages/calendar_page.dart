@@ -3,6 +3,7 @@
 // ============================================================
 import 'package:flutter/material.dart';
 import '../core/engine.dart';
+import '../core/ocr_service.dart';
 import '../core/store.dart';
 import '../core/theme.dart';
 
@@ -16,6 +17,38 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+
+  // 汇总缓存：月度计薪小时数只在月/模式/特殊日变化时重算
+  String _sumKey = '';
+  double _billableHours = 0;
+  int _specialCount = 0;
+
+  void _recalcSummary(AppState s) {
+    final buf = StringBuffer(
+        '${_month.year}-${_month.month}-${s.schedule.mode}-');
+    final keys = s.specials.keys.toList()..sort();
+    for (final k in keys) {
+      final v = s.specials[k]!;
+      buf.write('$k:${v.type}:${v.mult}:${v.leaveStart}-${v.leaveEnd};');
+    }
+    final key = buf.toString();
+    if (key == _sumKey) return;
+    _sumKey = key;
+    var hours = 0.0;
+    final days = daysInMonth(_month.year, _month.month);
+    for (var d = 1; d <= days; d++) {
+      final ivs = dayIntervals(DateTime(_month.year, _month.month, d),
+          widget.store.engineMode, widget.store.engineSpecials,
+          widget.store.cfg);
+      for (final iv in ivs) {
+        hours += (iv.endMinAbs - iv.startMinAbs) / 60.0;
+      }
+    }
+    _billableHours = hours;
+    _specialCount = s.specials.keys
+        .where((k) => k.startsWith('${_month.year}-${_month.month}-'))
+        .length;
+  }
 
   String _key(int day) => '${_month.year}-${_month.month}-$day';
 
@@ -32,6 +65,46 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       builder: (ctx) => _RotationEditorSheet(store: widget.store),
     );
+  }
+
+  Future<void> _openOcrFlow() async {
+    final lines = await OcrService.pickAndRecognize();
+    if (!mounted) return;
+    if (lines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('未识别到文字，请换一张更清晰的截图')));
+      return;
+    }
+    final pairs = OcrService.parse(lines);
+    if (!mounted) return;
+    if (pairs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('未能解析出排班，请尝试更清晰的截图（或手动标记）')));
+      return;
+    }
+    final applied = await showModalBottomSheet<Map<int, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: C.card(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _OcrPreviewSheet(pairs: pairs, month: _month),
+    );
+    if (applied == null || applied.isEmpty) return;
+    widget.store.update((st) {
+      for (final e in applied.entries) {
+        final k = '${_month.year}-${_month.month}-${e.key}';
+        if (e.value == '休') {
+          st.specials[k] = SpecialDayData(type: 'rest');
+        } else {
+          st.specials[k] = SpecialDayData(
+              type: 'shift', shiftIdx: OcrService.labelToShiftIdx(e.value));
+        }
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('已应用 ${applied.length} 天排班，可点日期查看/修改')));
   }
 
   String _shiftLabel(Shift s) {
@@ -91,21 +164,8 @@ class _CalendarPageState extends State<CalendarPage> {
         final days = daysInMonth(_month.year, _month.month);
         final today = DateTime.now();
 
-        // 本月实际计薪小时（含特殊日，不含倍率权重）
-        var billableHours = 0.0;
-        for (var d = 1; d <= days; d++) {
-          final ivs = dayIntervals(
-              DateTime(_month.year, _month.month, d),
-              widget.store.engineMode,
-              widget.store.engineSpecials,
-              widget.store.cfg);
-          for (final iv in ivs) {
-            billableHours += (iv.endMinAbs - iv.startMinAbs) / 60.0;
-          }
-        }
-        final specialCount = s.specials.keys
-            .where((k) => k.startsWith('${_month.year}-${_month.month}-'))
-            .length;
+        // 本月实际计薪小时（缓存重算，避免每次构建全月区间计算）
+        _recalcSummary(s);
 
         return SafeArea(
           child: Column(
@@ -119,6 +179,24 @@ class _CalendarPageState extends State<CalendarPage> {
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w800)),
                     const Spacer(),
+                    GestureDetector(
+                      onTap: _openOcrFlow,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Row(
+                          children: [
+                            Icon(Icons.document_scanner_outlined,
+                                size: 15, color: accent),
+                            const SizedBox(width: 3),
+                            Text('识别排班',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: accent,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ),
                     if (s.schedule.mode == 6)
                       GestureDetector(
                         onTap: _openRotationEditor,
@@ -264,7 +342,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          '本月计薪 ${billableHours.round()} 小时 · 特殊日 $specialCount 处\n按排班自动汇总 · 加班计入 / 请假调休扣除',
+                          '本月计薪 ${_billableHours.round()} 小时 · 特殊日 $_specialCount 处\n按排班自动汇总 · 加班计入 / 请假调休扣除',
                           style: TextStyle(
                               fontSize: 12, color: dim, height: 1.6),
                         ),
@@ -308,13 +386,16 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget _cell(BuildContext c, int offset, int days, int idx, DateTime today,
       AppState s) {
     final dayNum = idx - offset + 1;
-    if (dayNum < 1 || dayNum > days) return const SizedBox(height: 47);
+    if (dayNum < 1 || dayNum > days) return const SizedBox(height: 49);
     final date = DateTime(_month.year, _month.month, dayNum);
-    final shift =
-        shiftForDay(widget.store.engineMode, date, widget.store.cfg);
-    final rest = shift == null;
-    final label = rest ? '休' : _shiftLabel(shift!);
     final sp = s.specials[_key(dayNum)];
+    var effShift =
+        shiftForDay(widget.store.engineMode, date, widget.store.cfg);
+    if (sp != null && sp.type == 'shift') {
+      effShift = SpecialDayData.presetShifts[sp.shiftIdx]; // 排班覆盖
+    }
+    final rest = effShift == null;
+    final label = rest ? '休' : _shiftLabel(effShift!);
     final isToday = date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
@@ -322,17 +403,17 @@ class _CalendarPageState extends State<CalendarPage> {
     return GestureDetector(
       onTap: () => _openDay(dayNum),
       child: Container(
-        height: 47,
+        height: 49,
         decoration: BoxDecoration(
-          color: rest ? Colors.transparent : C.card(c),
+          color: rest ? C.card(c).withAlpha(46) : C.card(c),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isToday
-                ? accent
-                : (rest ? Colors.transparent : C.line(c)),
+            color:
+                isToday ? accent : (rest ? Colors.transparent : C.line(c)),
+            width: isToday ? 1.4 : 0.8,
           ),
           boxShadow: isToday
-              ? [BoxShadow(color: accent.withAlpha(60), blurRadius: 10)]
+              ? [BoxShadow(color: accent.withAlpha(50), blurRadius: 10)]
               : null,
         ),
         child: Stack(
@@ -383,6 +464,16 @@ class _CalendarPageState extends State<CalendarPage> {
         break;
       case 'leave':
         text = '假';
+        fg = C.dim(c);
+        bg = C.card(c);
+        break;
+      case 'shift':
+        text = SpecialDayData.presetShifts[sp.shiftIdx].name.substring(0, 1);
+        fg = C.blue(c);
+        bg = C.blueDim(c);
+        break;
+      case 'rest':
+        text = '休';
         fg = C.dim(c);
         bg = C.card(c);
         break;
@@ -978,6 +1069,119 @@ class _RotationEditorSheetState extends State<_RotationEditorSheet> {
                 onChanged: (v) => setState(() => d.rest = v ?? d.rest),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+// ============================================================
+// OCR 识别结果预览（逐条修正后应用）
+// ============================================================
+class _OcrPreviewSheet extends StatefulWidget {
+  final Map<int, String> pairs;
+  final DateTime month;
+  const _OcrPreviewSheet({required this.pairs, required this.month});
+
+  @override
+  State<_OcrPreviewSheet> createState() => _OcrPreviewSheetState();
+}
+
+class _OcrPreviewSheetState extends State<_OcrPreviewSheet> {
+  static const _labels = ['白班', '中班', '晚班', '夜班', '早班', '休'];
+  late Map<int, String> _sel;
+
+  @override
+  void initState() {
+    super.initState();
+    _sel = Map.of(widget.pairs);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final days = _sel.keys.toList()..sort();
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: C.line(context), borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('识别结果预览',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text('共识别 ' + days.length.toString() + ' 天，可逐条修正后应用（识别可能有误，请核对）',
+              style: TextStyle(fontSize: 11, color: C.dim(context))),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView(
+              children: [
+                for (final d in days)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: C.line(context)),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(widget.month.month.toString() + '月' + d.toString() + '日',
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        DropdownButton<String>(
+                          value: _labels.contains(_sel[d]) ? _sel[d] : '休',
+                          underline: const SizedBox(),
+                          style: TextStyle(fontSize: 13, color: accent),
+                          items: [
+                            for (final l in _labels)
+                              DropdownMenuItem(value: l, child: Text(l)),
+                            const DropdownMenuItem(
+                                value: '_remove',
+                                child: Text('移除',
+                                    style: TextStyle(
+                                        color: Color(0xFFF87171)))),
+                          ],
+                          onChanged: (v) => setState(() {
+                            if (v == '_remove') {
+                              _sel.remove(d);
+                            } else if (v != null) {
+                              _sel[d] = v;
+                            }
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: const Color(0xFF06231A)),
+              onPressed: () =>
+                  Navigator.pop(context, Map<int, String>.of(_sel)),
+              child: Text('应用 ' + _sel.length.toString() + ' 天排班',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
           ),
         ],
       ),

@@ -34,5 +34,7 @@
 	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于选择排班表截图进行文字识别</string>
 </dict>
 </plist>

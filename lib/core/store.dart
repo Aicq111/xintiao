@@ -126,11 +126,11 @@ class ScheduleData {
       );
 }
 
-/// 特殊日（加班 / 请假 / 调休）
+/// 特殊日（加班 / 请假 / 调休 / 排班覆盖 / 休息覆盖）
 class SpecialDayData {
-  String type; // 'overtime' | 'leave' | 'off'
+  String type; // 'overtime' | 'leave' | 'off' | 'shift' | 'rest'
   double mult;
-  int shiftIdx; // 加班复制的班次（presetShifts 索引）
+  int shiftIdx; // 加班/覆盖的班次（presetShifts 索引）
   int leaveStart; // 分钟
   int leaveEnd;
 
@@ -150,6 +150,10 @@ class SpecialDayData {
         return SpecialDay.overtime(mult, shift: presetShifts[shiftIdx]);
       case 'leave':
         return SpecialDay.leave(leaveStart, leaveEnd);
+      case 'shift':
+        return SpecialDay.shiftOverride(presetShifts[shiftIdx]);
+      case 'rest':
+        return const SpecialDay.rest();
       default:
         return const SpecialDay.off();
     }
