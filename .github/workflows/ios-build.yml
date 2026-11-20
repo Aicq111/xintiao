@@ -14,8 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        slot: [1, 2, 3]
-    runs-on: macos-latest
+        os: [macos-14, macos-15]
+        slot: [1, 2]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
       - name: 检出代码
@@ -69,7 +70,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Runner-ipa
+          name: Runner-ipa-${{ matrix.os }}-${{ matrix.slot }}
           path: Runner.ipa
           if-no-files-found: error
 
@@ -77,6 +78,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Runner-app-${{ matrix.slot }}
+          name: Runner-app-${{ matrix.os }}-${{ matrix.slot }}
           path: build/ios/iphoneos/Runner.app
           if-no-files-found: error
