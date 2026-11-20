@@ -54,6 +54,25 @@ jobs:
           print('::error::' + urllib.parse.quote(tail, safe=''))
           PYEOF
 
+      - name: 制作无小组件安装包（免费签名兼容）
+        if: success()
+        run: |
+          set -e
+          APP=build/ios/iphoneos/Runner.app
+          rm -rf "$APP/PlugIns"
+          mkdir -p ipa/Payload
+          cp -R "$APP" ipa/Payload/
+          cd ipa
+          zip -qry ../Runner.ipa Payload
+
+      - name: 上传安装包 Runner.ipa
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Runner-ipa
+          path: Runner.ipa
+          if-no-files-found: error
+
       - name: 上传 Runner.app
         if: success()
         uses: actions/upload-artifact@v4
