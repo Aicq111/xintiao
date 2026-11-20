@@ -96,19 +96,23 @@ class OcrService {
       }
     }
 
-    // 跨行配对（数字在上、班次在下的单元格布局）
-    for (var ri = 0; ri < rows.length - 1; ri++) {
-      final next = rows[ri + 1];
+    // 跨行配对（数字在上、班次在下的单元格布局，以及相反的上下布局）
+    for (var ri = 0; ri < rows.length; ri++) {
+      final targets = <List<OcrLine>>[];
+      if (ri + 1 < rows.length) targets.add(rows[ri + 1]);
+      if (ri - 1 >= 0) targets.add(rows[ri - 1]);
       for (final (tok, day) in _dayTokens(rows[ri])) {
         if (result.containsKey(day)) continue;
         OcrLine? best;
-        var bestDist = 0.06;
-        for (final it in next) {
-          if (!_shiftPat.hasMatch(it.text)) continue;
-          final d = (it.cx - tok.cx).abs();
-          if (d < bestDist) {
-            bestDist = d;
-            best = it;
+        var bestDist = tok.w * 1.8; // 同列判断：容差为数字宽度的 1.8 倍
+        for (final next in targets) {
+          for (final it in next) {
+            if (!_shiftPat.hasMatch(it.text)) continue;
+            final d = (it.cx - tok.cx).abs();
+            if (d < bestDist) {
+              bestDist = d;
+              best = it;
+            }
           }
         }
         if (best != null) {

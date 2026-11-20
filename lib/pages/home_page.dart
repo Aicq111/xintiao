@@ -221,10 +221,6 @@ class _HomePageState extends State<HomePage> {
                           fontWeight: FontWeight.w700,
                           color: accent,
                           fontFeatures: const [FontFeature.tabularFigures()],
-                          shadows: [
-                            Shadow(
-                                color: accent.withAlpha(90), blurRadius: 34),
-                          ],
                         ),
                       ),
                     ),

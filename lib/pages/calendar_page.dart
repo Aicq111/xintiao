@@ -22,6 +22,7 @@ class _CalendarPageState extends State<CalendarPage> {
   String _sumKey = '';
   double _billableHours = 0;
   int _specialCount = 0;
+  bool _ocrBusy = false;
 
   void _recalcSummary(AppState s) {
     final buf = StringBuffer(
@@ -52,6 +53,27 @@ class _CalendarPageState extends State<CalendarPage> {
 
   String _key(int day) => '${_month.year}-${_month.month}-$day';
 
+  static String _modeHint(int mode) {
+    switch (mode) {
+      case 0:
+        return '全天候：每天 24 小时计薪，适合副业/理财';
+      case 1:
+        return '长白班：周一至周五 8:00–17:00（午休 1 小时），周末休息';
+      case 2:
+        return '长夜班：周一至周五 20:00–次日 6:00（宵夜 1 小时），周末休息';
+      case 3:
+        return '两班倒：按周轮换白班/夜班，周末休息';
+      case 4:
+        return '三班倒：早/中/晚按天循环，周末休息';
+      case 5:
+        return '自定义：同长白班（后续可改班次时间）';
+      case 6:
+        return '自定义轮换：按月轮换班次，每个班次有固定休息日（上六休一）→ 点右上角「编辑轮换」设置';
+      default:
+        return '';
+    }
+  }
+
   void _prevMonth() => setState(() => _month = DateTime(_month.year, _month.month - 1, 1));
   void _nextMonth() => setState(() => _month = DateTime(_month.year, _month.month + 1, 1));
 
@@ -68,43 +90,93 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _openOcrFlow() async {
-    final lines = await OcrService.pickAndRecognize();
-    if (!mounted) return;
-    if (lines.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('未识别到文字，请换一张更清晰的截图')));
-      return;
+    if (_ocrBusy) return;
+    _ocrBusy = true;
+    setState(() {});
+    try {
+      final lines = await OcrService.pickAndRecognize();
+      if (!mounted) return;
+      if (lines.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('未识别到文字，请换一张更清晰的截图')));
+        return;
+      }
+      final pairs = OcrService.parse(lines);
+      if (!mounted) return;
+      if (pairs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('未能解析出排班，请尝试更清晰的截图（或手动标记）')));
+        return;
+      }
+      final applied = await showModalBottomSheet<Map<int, String>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: C.card(context),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) => _OcrPreviewSheet(pairs: pairs, month: _month),
+      );
+      if (applied == null || applied.isEmpty) return;
+      widget.store.update((st) {
+        for (final e in applied.entries) {
+          final k = '${_month.year}-${_month.month}-${e.key}';
+          if (e.value == '休') {
+            st.specials[k] = SpecialDayData(type: 'rest');
+          } else {
+            st.specials[k] = SpecialDayData(
+                type: 'shift', shiftIdx: OcrService.labelToShiftIdx(e.value));
+          }
+        }
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('已应用 ${applied.length} 天排班，可点日期查看/修改')));
+    } finally {
+      _ocrBusy = false;
+      if (mounted) setState(() {});
     }
-    final pairs = OcrService.parse(lines);
-    if (!mounted) return;
-    if (pairs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('未能解析出排班，请尝试更清晰的截图（或手动标记）')));
-      return;
-    }
-    final applied = await showModalBottomSheet<Map<int, String>>(
+  }
+
+  Future<void> _openBatchSheet() async {
+    final result = await showModalBottomSheet<_BatchResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: C.card(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => _OcrPreviewSheet(pairs: pairs, month: _month),
+      builder: (ctx) => _BatchSheet(month: _month),
     );
-    if (applied == null || applied.isEmpty) return;
+    if (result == null) return;
     widget.store.update((st) {
-      for (final e in applied.entries) {
-        final k = '${_month.year}-${_month.month}-${e.key}';
-        if (e.value == '休') {
-          st.specials[k] = SpecialDayData(type: 'rest');
-        } else {
-          st.specials[k] = SpecialDayData(
-              type: 'shift', shiftIdx: OcrService.labelToShiftIdx(e.value));
+      for (var d = result.from; d <= result.to; d++) {
+        final k = '${_month.year}-${_month.month}-$d';
+        switch (result.type) {
+          case 'clear':
+            st.specials.remove(k);
+            break;
+          case 'off':
+            st.specials[k] = SpecialDayData(type: 'off');
+            break;
+          case 'rest':
+            st.specials[k] = SpecialDayData(type: 'rest');
+            break;
+          case 'overtime':
+            st.specials[k] = SpecialDayData(
+                type: 'overtime', mult: result.mult, shiftIdx: _defaultShiftIdx());
+            break;
+          case 'leave':
+            st.specials[k] =
+                SpecialDayData(type: 'leave', leaveStart: 0, leaveEnd: 1440);
+            break;
         }
       }
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('已应用 ${applied.length} 天排班，可点日期查看/修改')));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('已批量标记 ${result.from}–${result.to} 日')));
+    }
   }
 
   String _shiftLabel(Shift s) {
@@ -167,7 +239,18 @@ class _CalendarPageState extends State<CalendarPage> {
         // 本月实际计薪小时（缓存重算，避免每次构建全月区间计算）
         _recalcSummary(s);
 
-        return SafeArea(
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).scaffoldBackgroundColor,
+                C.card(context).withAlpha(70),
+              ],
+            ),
+          ),
+          child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -180,15 +263,16 @@ class _CalendarPageState extends State<CalendarPage> {
                             fontSize: 18, fontWeight: FontWeight.w800)),
                     const Spacer(),
                     GestureDetector(
-                      onTap: _openOcrFlow,
+                      onTap: _ocrBusy ? null : _openOcrFlow,
+                      behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding: const EdgeInsets.only(right: 12),
+                        padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
                         child: Row(
                           children: [
                             Icon(Icons.document_scanner_outlined,
-                                size: 15, color: accent),
+                                size: 16, color: accent),
                             const SizedBox(width: 3),
-                            Text('识别排班',
+                            Text(_ocrBusy ? '识别中…' : '识别排班',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: accent,
@@ -209,11 +293,18 @@ class _CalendarPageState extends State<CalendarPage> {
                                   fontWeight: FontWeight.w600)),
                         ),
                       ),
-                    Text('＋批量标记',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: accent,
-                            fontWeight: FontWeight.w600)),
+                    GestureDetector(
+                      onTap: _openBatchSheet,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 6, 0, 6),
+                        child: Text('＋批量标记',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: accent,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -252,6 +343,13 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                     );
                   },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+                child: Text(
+                  _modeHint(s.schedule.mode),
+                  style: TextStyle(fontSize: 11, color: dim, height: 1.5),
                 ),
               ),
               Padding(
@@ -362,6 +460,7 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ],
           ),
+        ),
         );
       },
     );
@@ -1184,6 +1283,153 @@ class _OcrPreviewSheetState extends State<_OcrPreviewSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+// ============================================================
+// 批量标记弹层
+// ============================================================
+class _BatchResult {
+  final String type;
+  final double mult;
+  final int from;
+  final int to;
+  _BatchResult(this.type, this.mult, this.from, this.to);
+}
+
+class _BatchSheet extends StatefulWidget {
+  final DateTime month;
+  const _BatchSheet({required this.month});
+
+  @override
+  State<_BatchSheet> createState() => _BatchSheetState();
+}
+
+class _BatchSheetState extends State<_BatchSheet> {
+  String _type = 'overtime';
+  double _mult = 1.5;
+  int _from = 1;
+  int _to = 1;
+
+  Future<void> _pick(bool isFrom) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(widget.month.year, widget.month.month,
+          (isFrom ? _from : _to).clamp(1, 28).toInt()),
+      firstDate: DateTime(widget.month.year, widget.month.month, 1),
+      lastDate: DateTime(widget.month.year, widget.month.month, 28),
+      helpText: isFrom ? '选择起始日' : '选择结束日',
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isFrom) {
+        _from = picked.day;
+        if (_to < _from) _to = _from;
+      } else {
+        _to = picked.day;
+        if (_from > _to) _from = _to;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final dim = C.dim(context);
+    return Padding(
+      padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 12,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: C.line(context), borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('批量标记',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(' 年  月 · 选择类型和日期范围，一次应用到多天',
+              style: TextStyle(fontSize: 11, color: dim)),
+          const SizedBox(height: 14),
+          Text('标记类型', style: TextStyle(fontSize: 12, color: dim)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _bChip('加班 1.5×', 'overtime', 1.5),
+              _bChip('加班 2.0×', 'overtime', 2.0),
+              _bChip('加班 3.0×', 'overtime', 3.0),
+              _bChip('请假（整天）', 'leave', 1.0),
+              _bChip('调休', 'off', 1.0),
+              _bChip('清除标记', 'clear', 1.0),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text('日期范围', style: TextStyle(fontSize: 12, color: dim)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              OutlinedButton(
+                  onPressed: () => _pick(true),
+                  child: Text('起始  日')),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                  onPressed: () => _pick(false),
+                  child: Text('结束  日')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: const Color(0xFF06231A)),
+              onPressed: () => Navigator.pop(
+                  context, _BatchResult(_type, _mult, _from, _to)),
+              child: Text('应用  天',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bChip(String label, String type, double mult) {
+    final on = _type == type && (type != 'overtime' || _mult == mult);
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: () => setState(() {
+        _type = type;
+        _mult = mult;
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: on ? C.accentDim(context) : Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: on ? accent : C.line(context)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: on ? FontWeight.w700 : FontWeight.w400,
+                color: on ? accent : C.dim(context))),
       ),
     );
   }
