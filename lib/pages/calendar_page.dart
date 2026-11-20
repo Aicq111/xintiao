@@ -124,8 +124,8 @@ class _CalendarPageState extends State<CalendarPage> {
                   itemBuilder: (context, i) {
                     final on = s.schedule.mode == i;
                     return GestureDetector(
-                      onTap: () =>
-                          widget.store.update((st) => st.schedule.mode = i),
+                      onTap: () => widget.store
+                          .update((st) => st.schedule = ScheduleData(mode: i)),
                       child: Container(
                         padding:
                             const EdgeInsets.symmetric(horizontal: 14),

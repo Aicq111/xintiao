@@ -7,108 +7,32 @@ Upgrading%20Info.plist
 To%20ensure%20your%20app%20continues%20to%20launch%20on%20upcoming%20iOS%20versions%2C%20UIScene%20lifecycle%20support%20will%20soon%20be%20required.%20Please%20see%20https%3A%2F%2Fflutter.dev%2Fto%2Fuiscene-migration%20for%20the%20migration%20guide.
 
 Swift%20Package%20Manager%20is%20currently%20disabled.%20Enabling%20Swift%20Package%20Manager%20will%20be%20required%20in%20a%20future%20version%20of%20Flutter.%20To%20re-enable%20it%2C%20run%20%22flutter%20config%20--enable-swift-package-manager%22
-Running%20pod%20install...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%201%2C215ms
+Running%20pod%20install...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%201%2C010ms
 Running%20Xcode%20build...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20
-Xcode%20build%20done.%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2020.4s
+Xcode%20build%20done.%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2021.8s
 Failed%20to%20build%20iOS%20app
-%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90
-Building%20a%20deployable%20iOS%20app%20requires%20a%20selected%20Development%20Team%20with%20a%20
-Provisioning%20Profile.%20Please%20ensure%20that%20a%20Development%20Team%20is%20selected%20by%3A
-%20%201-%20Open%20the%20Flutter%20project%27s%20Xcode%20target%20with
-%20%20%20%20%20%20%20open%20ios%2FRunner.xcworkspace
-%20%202-%20Select%20the%20%27Runner%27%20project%20in%20the%20navigator%20then%20the%20%27Runner%27%20target
-%20%20%20%20%20in%20the%20project%20settings
-%20%203-%20Make%20sure%20a%20%27Development%20Team%27%20is%20selected%20under%20Signing%20%26%20Capabilities%20%3E%20Team.%20
-%20%20%20%20%20You%20may%20need%20to%3A
-%20%20%20%20%20%20%20%20%20-%20Log%20in%20with%20your%20Apple%20ID%20in%20Xcode%20first
-%20%20%20%20%20%20%20%20%20-%20Ensure%20you%20have%20a%20valid%20unique%20Bundle%20ID
-%20%20%20%20%20%20%20%20%20-%20Register%20your%20device%20with%20your%20Apple%20Developer%20Account
-%20%20%20%20%20%20%20%20%20-%20Let%20Xcode%20automatically%20provision%20a%20profile%20for%20your%20app
-%20%204-%20Build%20or%20run%20your%20project%20again
+Error%20output%20from%20Xcode%20build%3A
+%E2%86%B3
+%20%20%20%202026-11-19%2013%3A57%3A12.286%20xcodebuild%5B3573%3A15810%5D%20%5BMT%5D%20IDERunDestination%3A%20Supported%20platforms%20for%20the%20buildables%20in%20the%20current%20scheme%20is%20empty.
+%20%20%20%20%2A%2A%20BUILD%20FAILED%20%2A%2A
 
-For%20more%20information%2C%20please%20visit%3A
-%20%20https%3A%2F%2Fflutter.dev%2Fto%2Fios-development-team
 
-Or%20run%20on%20an%20iOS%20simulator%20without%20code%20signing
-%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90
-Encountered%20error%20while%20building%20for%20device.
+Xcode%27s%20output%3A
+%E2%86%B3
+%20%20%20%20Writing%20result%20bundle%20at%20path%3A
+%20%20%20%20%09%2Fvar%2Ffolders%2Fh5%2Ft85nd63d71x27_8gl5gw3l_w0000gn%2FT%2Fflutter_tools.zh5jtY%2Fflutter_ios_build_temp_dirQaBQEH%2Ftemporary_xcresult_bundle
+
+%20%20%20%20%2FUsers%2Frunner%2Fwork%2Fxintiao%2Fxintiao%2Fios%2FPods%2FPods.xcodeproj%3A%20shared_preferences_foundation%3A%20ld%3A%20warning%3A%20search%20path%20%27%2Fvar%2Frun%2Fcom.apple.security.cryptexd%2Fmnt%2Fcom.apple.MobileAsset.MetalToolchain-v17.6.109.0.f3E3uc%2FMetal.xctoolchain%2Fusr%2Flib%2Fswift%2Fiphoneos%27%20not%20found
+%20%20%20%20%2FUsers%2Frunner%2Fwork%2Fxintiao%2Fxintiao%2Fios%2FRunner.xcodeproj%3A%20XinTiaoWidget%3A%20ld%3A%20warning%3A%20search%20path%20%27%2Fvar%2Frun%2Fcom.apple.security.cryptexd%2Fmnt%2Fcom.apple.MobileAsset.MetalToolchain-v17.6.109.0.f3E3uc%2FMetal.xctoolchain%2Fusr%2Flib%2Fswift%2Fiphoneos%27%20not%20found
+%20%20%20%20lib%2Fcore%2Fstore.dart%3A140%3A27%3A%20Error%3A%20Cannot%20invoke%20a%20non-%27const%27%20constructor%20where%20a%20const%20expression%20is%20expected.
+%20%20%20%20Try%20using%20a%20constructor%20or%20factory%20that%20is%20%27const%27.
+%20%20%20%20%20%20%20%20this.schedule%20%3D%20const%20ScheduleData%28%29%2C
+%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5E%5E%5E%5E%5E%5E%5E%5E%5E%5E%5E%5E
+%20%20%20%20Target%20kernel_snapshot_program%20failed%3A%20Exception
+%20%20%20%20Failed%20to%20package%20%2FUsers%2Frunner%2Fwork%2Fxintiao%2Fxintiao.
+%20%20%20%20Command%20PhaseScriptExecution%20failed%20with%20a%20nonzero%20exit%20code
+%20%20%20%20warning%3A%20Run%20script%20build%20phase%20%27Run%20Script%27%20will%20be%20run%20during%20every%20build%20because%20it%20does%20not%20specify%20any%20outputs.%20To%20address%20this%20issue%2C%20either%20add%20output%20dependencies%20to%20the%20script%20phase%2C%20or%20configure%20it%20to%20run%20in%20every%20build%20by%20unchecking%20%22Based%20on%20dependency%20analysis%22%20in%20the%20script%20phase.%20%28in%20target%20%27Runner%27%20from%20project%20%27Runner%27%29
+%20%20%20%20warning%3A%20Run%20script%20build%20phase%20%27Thin%20Binary%27%20will%20be%20run%20during%20every%20build%20because%20it%20does%20not%20specify%20any%20outputs.%20To%20address%20this%20issue%2C%20either%20add%20output%20dependencies%20to%20the%20script%20phase%2C%20or%20configure%20it%20to%20run%20in%20every%20build%20by%20unchecking%20%22Based%20on%20dependency%20analy
 Process completed with exit code 1.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
-Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-Warning%3A%20Building%20for%20device%20with%20codesigning%20disabled.%20You%20will%20have%20to%20manually%20codesign%20before%20deploying%20to%20device.
-Building%20com.xintiao.app%20for%20device%20%28ios-release%29...
-Updating%20project%20for%20Xcode%20compatibility.
-Upgrading%20project.pbxproj
-Upgrading%20Info.plist
-To%20ensure%20your%20app%20continues%20to%20launch%20on%20upcoming%20iOS%20versions%2C%20UIScene%20lifecycle%20support%20will%20soon%20be%20required.%20Please%20see%20https%3A%2F%2Fflutter.dev%2Fto%2Fuiscene-migration%20for%20the%20migration%20guide.
-
-Swift%20Package%20Manager%20is%20currently%20disabled.%20Enabling%20Swift%20Package%20Manager%20will%20be%20required%20in%20a%20future%20version%20of%20Flutter.%20To%20re-enable%20it%2C%20run%20%22flutter%20config%20--enable-swift-package-manager%22
-Running%20pod%20install...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20913ms
-Running%20Xcode%20build...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20
-Xcode%20build%20done.%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2020.5s
-Failed%20to%20build%20iOS%20app
-%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90
-Building%20a%20deployable%20iOS%20app%20requires%20a%20selected%20Development%20Team%20with%20a%20
-Provisioning%20Profile.%20Please%20ensure%20that%20a%20Development%20Team%20is%20selected%20by%3A
-%20%201-%20Open%20the%20Flutter%20project%27s%20Xcode%20target%20with
-%20%20%20%20%20%20%20open%20ios%2FRunner.xcworkspace
-%20%202-%20Select%20the%20%27Runner%27%20project%20in%20the%20navigator%20then%20the%20%27Runner%27%20target
-%20%20%20%20%20in%20the%20project%20settings
-%20%203-%20Make%20sure%20a%20%27Development%20Team%27%20is%20selected%20under%20Signing%20%26%20Capabilities%20%3E%20Team.%20
-%20%20%20%20%20You%20may%20need%20to%3A
-%20%20%20%20%20%20%20%20%20-%20Log%20in%20with%20your%20Apple%20ID%20in%20Xcode%20first
-%20%20%20%20%20%20%20%20%20-%20Ensure%20you%20have%20a%20valid%20unique%20Bundle%20ID
-%20%20%20%20%20%20%20%20%20-%20Register%20your%20device%20with%20your%20Apple%20Developer%20Account
-%20%20%20%20%20%20%20%20%20-%20Let%20Xcode%20automatically%20provision%20a%20profile%20for%20your%20app
-%20%204-%20Build%20or%20run%20your%20project%20again
-
-For%20more%20information%2C%20please%20visit%3A
-%20%20https%3A%2F%2Fflutter.dev%2Fto%2Fios-development-team
-
-Or%20run%20on%20an%20iOS%20simulator%20without%20code%20signing
-%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90
-Encountered%20error%20while%20building%20for%20device.
-Process completed with exit code 1.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
-Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-Warning%3A%20Building%20for%20device%20with%20codesigning%20disabled.%20You%20will%20have%20to%20manually%20codesign%20before%20deploying%20to%20device.
-Building%20com.xintiao.app%20for%20device%20%28ios-release%29...
-Updating%20project%20for%20Xcode%20compatibility.
-Upgrading%20project.pbxproj
-Upgrading%20Info.plist
-To%20ensure%20your%20app%20continues%20to%20launch%20on%20upcoming%20iOS%20versions%2C%20UIScene%20lifecycle%20support%20will%20soon%20be%20required.%20Please%20see%20https%3A%2F%2Fflutter.dev%2Fto%2Fuiscene-migration%20for%20the%20migration%20guide.
-
-Swift%20Package%20Manager%20is%20currently%20disabled.%20Enabling%20Swift%20Package%20Manager%20will%20be%20required%20in%20a%20future%20version%20of%20Flutter.%20To%20re-enable%20it%2C%20run%20%22flutter%20config%20--enable-swift-package-manager%22
-Running%20pod%20install...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%201%2C081ms
-Running%20Xcode%20build...%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20
-Xcode%20build%20done.%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2025.5s
-Failed%20to%20build%20iOS%20app
-%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90
-Building%20a%20deployable%20iOS%20app%20requires%20a%20selected%20Development%20Team%20with%20a%20
-Provisioning%20Profile.%20Please%20ensure%20that%20a%20Development%20Team%20is%20selected%20by%3A
-%20%201-%20Open%20the%20Flutter%20project%27s%20Xcode%20target%20with
-%20%20%20%20%20%20%20open%20ios%2FRunner.xcworkspace
-%20%202-%20Select%20the%20%27Runner%27%20project%20in%20the%20navigator%20then%20the%20%27Runner%27%20target
-%20%20%20%20%20in%20the%20project%20settings
-%20%203-%20Make%20sure%20a%20%27Development%20Team%27%20is%20selected%20under%20Signing%20%26%20Capabilities%20%3E%20Team.%20
-%20%20%20%20%20You%20may%20need%20to%3A
-%20%20%20%20%20%20%20%20%20-%20Log%20in%20with%20your%20Apple%20ID%20in%20Xcode%20first
-%20%20%20%20%20%20%20%20%20-%20Ensure%20you%20have%20a%20valid%20unique%20Bundle%20ID
-%20%20%20%20%20%20%20%20%20-%20Register%20your%20device%20with%20your%20Apple%20Developer%20Account
-%20%20%20%20%20%20%20%20%20-%20Let%20Xcode%20automatically%20provision%20a%20profile%20for%20your%20app
-%20%204-%20Build%20or%20run%20your%20project%20again
-
-For%20more%20information%2C%20please%20visit%3A
-%20%20https%3A%2F%2Fflutter.dev%2Fto%2Fios-development-team
-
-Or%20run%20on%20an%20iOS%20simulator%20without%20code%20signing
-%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90%E2%95%90
-Encountered%20error%20while%20building%20for%20device.
-Process completed with exit code 1.
-Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
 Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.
 Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times.

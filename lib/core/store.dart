@@ -59,9 +59,9 @@ class IncomeData {
 
 /// 排班模式
 class ScheduleData {
-  int mode; // 0 全天候 1 长白班 2 长夜班 3 两班倒 4 三班倒 5 自定义
+  final int mode; // 0 全天候 1 长白班 2 长夜班 3 两班倒 4 三班倒 5 自定义
 
-  ScheduleData({this.mode = 1});
+  const ScheduleData({this.mode = 1});
 
   static const modeNames = ['全天候', '长白班', '长夜班', '两班倒', '三班倒', '自定义'];
 
@@ -137,7 +137,7 @@ class AppState {
 
   AppState({
     List<IncomeData>? incomes,
-    this.schedule = ScheduleData(),
+    this.schedule = const ScheduleData(),
     Map<String, SpecialDayData>? specials,
     this.minUnitIdx = 3,
     this.decimals = 3,
