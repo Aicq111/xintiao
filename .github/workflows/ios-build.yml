@@ -9,17 +9,13 @@ on:
     # 每 2 小时自动重试（GitHub 服务器自行触发，无需本地电脑）
     - cron: '17 */2 * * *'
 
-concurrency:
-  group: ios-build
-  cancel-in-progress: true
-
 jobs:
   build-ios:
     strategy:
       fail-fast: false
       matrix:
         os: [macos-15]
-        slot: [1, 2, 3]
+        slot: [1, 2]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
