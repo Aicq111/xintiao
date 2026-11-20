@@ -27,6 +27,7 @@ class _StatsPageState extends State<StatsPage> {
         final incomes = widget.store.engineIncomes;
         final mode = widget.store.engineMode;
         final specials = widget.store.engineSpecials;
+        final cfg = widget.store.cfg;
         final accent = Theme.of(context).colorScheme.primary;
         final dim = C.dim(context);
 
@@ -52,6 +53,7 @@ class _StatsPageState extends State<StatsPage> {
                     specials: specials,
                     income: inc,
                     endMinute: d == days ? nowMin : null,
+                    cfg: cfg,
                   ) /
                   10000.0;
             }
@@ -102,8 +104,9 @@ class _StatsPageState extends State<StatsPage> {
           for (final inc in incomes) {
             if (!inc.followSchedule || !inc.participateMultiplier) continue;
             final rate = inc.amountYuan * 10000 /
-                monthlyBillableSeconds(now.year, now.month, mode);
-            final ivs = dayIntervals(DateTime(now.year, now.month, d), mode, specials);
+                monthlyBillableSeconds(now.year, now.month, mode, cfg);
+            final ivs =
+                dayIntervals(DateTime(now.year, now.month, d), mode, specials, cfg);
             for (final iv in ivs) {
               if (iv.mult > 1.0) {
                 overtimeExtra += (iv.mult - 1.0) *
@@ -142,6 +145,7 @@ class _StatsPageState extends State<StatsPage> {
                   specials: specials,
                   income: inc,
                   endMinute: isCur ? nowMin : null,
+                  cfg: cfg,
                 ) /
                 10000.0;
           }

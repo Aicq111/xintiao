@@ -14,9 +14,6 @@ class SettingsPage extends StatelessWidget {
   static String _themeModeName(int m) =>
       m == 0 ? '跟随系统' : (m == 1 ? '深色' : '浅色');
 
-  static String _frameName(int m) =>
-      m == 0 ? '跟随系统（120Hz）' : '锁定 60Hz 省电';
-
   String _payDesc(AppState s) =>
       s.payRule == 'lastWorkday' ? '每月最后一个工作日' : '每月 ${s.payDay} 号';
 
@@ -60,15 +57,13 @@ class SettingsPage extends StatelessWidget {
               _label(context, '显示与主题'),
               _card(context, [
                 _row(context, '🔢', '单位与精度',
-                    '${AppState.minUnitNames[s.minUnitIdx]} · ${s.displayDigits} 位小数',
+                    '${AppState.minUnitNames[s.minUnitIdx]}${s.autoPrecision ? ' · 自动精度' : ''}',
                     () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => DisplaySettingsPage(store: store)))),
                 _row(context, '🎨', '主题',
                     '${AppTheme.accentNames[s.accentIdx]} · ${_themeModeName(s.themeMode)}',
                     () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => ThemeSettingsPage(store: store)))),
-                _row(context, '⚡', '帧率', _frameName(s.frameRateMode),
-                    () => _frameSheet(context)),
               ]),
               _label(context, '小组件'),
               _card(context, [
@@ -137,23 +132,27 @@ class SettingsPage extends StatelessWidget {
               ),
               if (rule == 'day') ...[
                 const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      onPressed: () =>
-                          setSt(() => day = (day - 1).clamp(1, 28).toInt()),
-                      icon: Icon(Icons.remove_circle_outline, color: accent),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: DateTime(2000, 1, day.clamp(1, 28).toInt()),
+                        firstDate: DateTime(2000, 1, 1),
+                        lastDate: DateTime(2000, 1, 28),
+                        helpText: '选择每月发薪日',
+                      );
+                      if (picked != null) {
+                        setSt(() => day = picked.day);
+                      }
+                    },
+                    icon: Icon(Icons.calendar_month, size: 18, color: accent),
+                    label: Text(
+                      '每月 $day 号（点此日历选日）',
+                      style: TextStyle(fontSize: 14, color: accent),
                     ),
-                    Text('每月 $day 号',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800)),
-                    IconButton(
-                      onPressed: () =>
-                          setSt(() => day = (day + 1).clamp(1, 28).toInt()),
-                      icon: Icon(Icons.add_circle_outline, color: accent),
-                    ),
-                  ],
+                  ),
                 ),
               ],
               const SizedBox(height: 6),
@@ -181,60 +180,6 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  // ---------- 帧率弹层 ----------
-  void _frameSheet(BuildContext c) {
-    final accent = Theme.of(c).colorScheme.primary;
-    showModalBottomSheet(
-      context: c,
-      backgroundColor: C.card(c),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: C.line(c), borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text('帧率设置',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text('数字数据每秒更新一次；帧率影响动画流畅度',
-                style: TextStyle(fontSize: 11, color: C.dim(c))),
-            const SizedBox(height: 12),
-            _choice(c, '跟随系统（iPhone 13 Pro+ 自动 120Hz）', 0),
-            _choice(c, '锁定 60Hz 省电', 1),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _choice(BuildContext c, String label, int value) {
-    final on = store.state.frameRateMode == value;
-    final accent = Theme.of(c).colorScheme.primary;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label, style: const TextStyle(fontSize: 14)),
-      trailing: on
-          ? Icon(Icons.check_circle, color: accent, size: 20)
-          : Icon(Icons.circle_outlined, color: C.line(c), size: 20),
-      onTap: () {
-        store.update((st) => st.frameRateMode = value);
-        Navigator.pop(c);
-      },
     );
   }
 
@@ -356,7 +301,7 @@ class DisplaySettingsPage extends StatelessWidget {
           body: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
-              Text('最小单位（数值粒度）',
+              Text('显示单位（数值粒度与小数位）',
                   style: TextStyle(fontSize: 12, color: C.dim(context))),
               const SizedBox(height: 8),
               Wrap(
@@ -368,32 +313,28 @@ class DisplaySettingsPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              Text('小数位数（0–4 位）',
-                  style: TextStyle(fontSize: 12, color: C.dim(context))),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (var i = 0; i <= 4; i++)
-                    _opt(context, '$i 位', s.decimals == i,
-                        () => store.update((st) => st.decimals = i)),
-                ],
-              ),
-              const SizedBox(height: 18),
               Container(
-                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: C.card(context),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: C.line(context)),
                 ),
-                child: Text(
-                  '显示精度取两者中更细的为准：最小单位=分、小数位=3 → 显示 123.450（分以下不存在）；\n最小单位=厘、小数位=2 → 自动显示 3 位，避免抹掉真实增长。\n当每秒增幅小于最小单位时，数字会每隔几秒跳一次（仍然准确，绝不虚增）。',
-                  style: TextStyle(
-                      fontSize: 11, color: C.dim(context), height: 1.7),
+                child: SwitchListTile(
+                  title: const Text('自动提升精度',
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    '当所选单位下每秒增长不足 1 个单位时，自动用更细的单位显示，保证数字每秒跳动；数值始终真实，绝不虚增。',
+                    style: TextStyle(
+                        fontSize: 11, color: C.dim(context), height: 1.6),
+                  ),
+                  value: s.autoPrecision,
+                  activeColor: accent,
+                  onChanged: (v) =>
+                      store.update((st) => st.autoPrecision = v),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
               Text('实时预览',
                   style: TextStyle(fontSize: 12, color: C.dim(context))),
               const SizedBox(height: 8),
@@ -404,18 +345,29 @@ class DisplaySettingsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: C.line(context)),
                 ),
-                child: Text(
-                  '¥ ${s.formatMoney(3456789)} 元',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    shadows: [
-                      Shadow(color: accent.withAlpha(80), blurRadius: 20),
-                    ],
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      '¥ ${s.formatMoney(3456789)} 元',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        shadows: [
+                          Shadow(color: accent.withAlpha(80), blurRadius: 20),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      s.autoPrecision
+                          ? '当前工资水平下，主页将自动显示到「厘」以保证每秒跳动'
+                          : '自动精度已关闭，按所选单位显示',
+                      style: TextStyle(fontSize: 11, color: C.dim(context)),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 30),
@@ -480,18 +432,21 @@ class ThemeSettingsPage extends StatelessWidget {
               Text('主题色（小组件同步）',
                   style: TextStyle(fontSize: 12, color: C.dim(context))),
               const SizedBox(height: 10),
-              Row(
+              Wrap(
+                spacing: 14,
+                runSpacing: 16,
                 children: [
-                  for (var i = 0; i < AppTheme.accents.length; i++) ...[
-                    Expanded(
+                  for (var i = 0; i < AppTheme.accents.length; i++)
+                    SizedBox(
+                      width: 66,
                       child: GestureDetector(
                         onTap: () =>
                             store.update((st) => st.accentIdx = i),
                         child: Column(
                           children: [
                             Container(
-                              width: 44,
-                              height: 44,
+                              width: 46,
+                              height: 46,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: AppTheme.accents[i],
@@ -525,9 +480,6 @@ class ThemeSettingsPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (i != AppTheme.accents.length - 1)
-                      const SizedBox(width: 6),
-                  ],
                 ],
               ),
               const SizedBox(height: 20),

@@ -5,7 +5,15 @@
 // ============================================================
 
 /// 排班模式
-enum ScheduleMode { aroundClock, dayShift, nightShift, twoShift, threeShift, custom }
+enum ScheduleMode {
+  aroundClock,
+  dayShift,
+  nightShift,
+  twoShift,
+  threeShift,
+  custom,
+  customRotation,
+}
 
 /// 休息时段（分钟，班次时间线内）
 class BreakRange {
@@ -36,6 +44,70 @@ const Shift shiftZao = Shift('早班', 0, 8 * 60);
 const Shift shiftZhong = Shift('中班', 8 * 60, 16 * 60);
 const Shift shiftWan = Shift('晚班', 16 * 60, 24 * 60);
 const Shift shiftFull = Shift('全天候', 0, 24 * 60);
+
+/// 自定义轮换班次定义：班次时间 + 该班次的固定休息日（0=周一 … 6=周日）
+class ShiftDef {
+  final String name;
+  final int startMin;
+  final int endMin;
+  final List<BreakRange> breaks;
+  final int restWeekday;
+
+  const ShiftDef({
+    required this.name,
+    required this.startMin,
+    required this.endMin,
+    this.breaks = const [],
+    required this.restWeekday,
+  });
+
+  Shift get shift => Shift(name, startMin, endMin, breaks);
+
+  Map<String, dynamic> toJson() => {
+        'n': name,
+        's': startMin,
+        'e': endMin,
+        'b': breaks.map((x) => [x.startMin, x.endMin]).toList(),
+        'r': restWeekday,
+      };
+
+  factory ShiftDef.fromJson(Map<String, dynamic> j) => ShiftDef(
+        name: j['n'] as String,
+        startMin: j['s'] as int,
+        endMin: j['e'] as int,
+        breaks: (j['b'] as List? ?? [])
+            .map((x) => BreakRange((x as List)[0] as int, x[1] as int))
+            .toList(),
+        restWeekday: j['r'] as int,
+      );
+}
+
+/// 自定义轮换配置：按月轮换班次，每个班次有自己的固定休息日（上六休一）
+class ScheduleCfg {
+  final ScheduleMode mode;
+  final List<ShiftDef> rotationShifts;
+  final int rotationAnchorYear;
+  final int rotationAnchorMonth;
+  final int rotationStartIdx; // 锚定月所在班次下标
+
+  const ScheduleCfg(
+    this.mode, {
+    this.rotationShifts = const [],
+    this.rotationAnchorYear = 2026,
+    this.rotationAnchorMonth = 1,
+    this.rotationStartIdx = 0,
+  });
+
+  /// 按月轮换：本月班次 = (绝对月数 + 起始下标) mod 班次数
+  ShiftDef? rotationShiftFor(DateTime d) {
+    if (rotationShifts.isEmpty) return null;
+    final mIdx = (d.year - rotationAnchorYear) * 12 +
+        (d.month - rotationAnchorMonth);
+    final n = rotationShifts.length;
+    final idx = ((mIdx % n) + n + rotationStartIdx) % n;
+    return rotationShifts[idx];
+  }
+}
 
 /// 特殊日类型：加班（倍率）/ 请假（时段计薪 0）/ 调休（整天计薪 0）
 enum SpecialType { overtime, leave, off }
@@ -110,7 +182,7 @@ int weekIndexOf(DateTime d) {
 
 // ---------- 排班 → 当日班次 ----------
 
-Shift? shiftForDay(ScheduleMode mode, DateTime d) {
+Shift? shiftForDay(ScheduleMode mode, DateTime d, [ScheduleCfg? cfg]) {
   final w = weekdayOf(d);
   final idx = dayIndex(d);
   switch (mode) {
@@ -125,15 +197,21 @@ Shift? shiftForDay(ScheduleMode mode, DateTime d) {
       return w >= 5 ? null : (weekIndexOf(d).isOdd ? shiftBai : shiftYe);
     case ScheduleMode.threeShift:
       return w >= 5 ? null : [shiftZao, shiftZhong, shiftWan][idx % 3];
+    case ScheduleMode.customRotation:
+      final def = cfg?.rotationShiftFor(d);
+      if (def == null) return null;
+      if (w == def.restWeekday) return null; // 该班次的固定休息日（上六休一）
+      return def.shift;
   }
 }
 
 /// 当月「纯排班」计薪秒数（不含特殊日）——基准速率的除数。
 /// 口径：加班费 / 请假扣款按固定日薪基数核算，与真实工资一致。
-int monthlyBillableSeconds(int year, int month, ScheduleMode mode) {
+int monthlyBillableSeconds(int year, int month, ScheduleMode mode,
+    [ScheduleCfg? cfg]) {
   var total = 0;
   for (var d = 1; d <= daysInMonth(year, month); d++) {
-    final s = shiftForDay(mode, DateTime(year, month, d));
+    final s = shiftForDay(mode, DateTime(year, month, d), cfg);
     if (s != null) total += s.billableSeconds;
   }
   return total;
@@ -142,11 +220,11 @@ int monthlyBillableSeconds(int year, int month, ScheduleMode mode) {
 String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
 /// 当日计薪区间（绝对分钟 + 倍率）。特殊日键：'yyyy-M-d'。
-List<DayInterval> dayIntervals(
-    DateTime day, ScheduleMode mode, Map<String, SpecialDay> specials) {
+List<DayInterval> dayIntervals(DateTime day, ScheduleMode mode,
+    Map<String, SpecialDay> specials, [ScheduleCfg? cfg]) {
   final sp = specials[_key(day)];
   if (sp != null && sp.type == SpecialType.off) return const [];
-  var shift = shiftForDay(mode, day);
+  var shift = shiftForDay(mode, day, cfg);
   if (sp != null && sp.type == SpecialType.overtime && shift == null) {
     shift = sp.shift; // 休息日加班：用加班时段
   }
@@ -195,11 +273,13 @@ int accumulate({
   required Map<String, SpecialDay> specials,
   required Income income,
   double? endMinute,
+  ScheduleCfg? cfg,
 }) {
   final days = daysInMonth(year, month);
   double rate; // 毫/秒
   if (income.followSchedule) {
-    rate = income.amountYuan * 10000 / monthlyBillableSeconds(year, month, mode);
+    rate = income.amountYuan * 10000 /
+        monthlyBillableSeconds(year, month, mode, cfg);
   } else {
     final periodSec = switch (income.period) {
       'monthly' => days * 86400,
@@ -212,7 +292,7 @@ int accumulate({
   }
   var millis = 0.0;
   for (var d = fromDay; d <= toDay; d++) {
-    final ivs = dayIntervals(DateTime(year, month, d), mode, specials);
+    final ivs = dayIntervals(DateTime(year, month, d), mode, specials, cfg);
     for (final iv in ivs) {
       var e = iv.endMinAbs.toDouble();
       if (d == toDay && endMinute != null) {
@@ -235,9 +315,10 @@ double todayWorkSeconds({
   required DateTime now,
   required ScheduleMode mode,
   required Map<String, SpecialDay> specials,
+  ScheduleCfg? cfg,
 }) {
   final day = DateTime(now.year, now.month, now.day);
-  final ivs = dayIntervals(day, mode, specials);
+  final ivs = dayIntervals(day, mode, specials, cfg);
   final cap = (dayIndex(day) * 1440) +
       now.hour * 60 +
       now.minute +
@@ -257,9 +338,10 @@ double currentRateMillisPerSec({
   required ScheduleMode mode,
   required Map<String, SpecialDay> specials,
   required List<Income> incomes,
+  ScheduleCfg? cfg,
 }) {
   final day = DateTime(now.year, now.month, now.day);
-  final ivs = dayIntervals(day, mode, specials);
+  final ivs = dayIntervals(day, mode, specials, cfg);
   final nowMin = now.hour * 60 + now.minute + now.second / 60;
   final dayStart = dayIndex(day) * 1440;
   final nowAbs = dayStart + nowMin;
@@ -277,7 +359,7 @@ double currentRateMillisPerSec({
       continue;
     }
     final base = inc.amountYuan * 10000 /
-        monthlyBillableSeconds(now.year, now.month, mode);
+        monthlyBillableSeconds(now.year, now.month, mode, cfg);
     final iv = ivs.where((x) => nowAbs >= x.startMinAbs && nowAbs < x.endMinAbs);
     if (iv.isEmpty) continue; // 班外 / 休息 / 请假：不涨
     final m = inc.participateMultiplier ? iv.first.mult : 1.0;
@@ -293,6 +375,7 @@ int accumulateSince({
   required ScheduleMode mode,
   required Map<String, SpecialDay> specials,
   required Income income,
+  ScheduleCfg? cfg,
 }) {
   var total = 0;
   var cur = DateTime(start.year, start.month);
@@ -313,6 +396,7 @@ int accumulateSince({
       endMinute: isLast
           ? now.hour * 60 + now.minute + now.second / 60
           : null,
+      cfg: cfg,
     );
     if (isLast) break;
     cur = DateTime(cur.year, cur.month + 1, 1);

@@ -4,13 +4,26 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const accentNames = ['翡翠绿', '财富金', '天空蓝', '中国红'];
+  static const accentNames = [
+    '翡翠绿',
+    '财富金',
+    '天空蓝',
+    '中国红',
+    '紫气东来',
+    '玫瑰金',
+    '青碧',
+    '铂金银',
+  ];
 
   static const accents = [
     Color(0xFF34D399),
     Color(0xFFF0C24B),
     Color(0xFF60A5FA),
     Color(0xFFF87171),
+    Color(0xFFB388FF),
+    Color(0xFFF2A6C4),
+    Color(0xFF2DD4BF),
+    Color(0xFFC9D3E4),
   ];
 
   static const darkBgs = [
@@ -18,6 +31,10 @@ class AppTheme {
     Color(0xFF131009),
     Color(0xFF0A1424),
     Color(0xFF170B0E),
+    Color(0xFF120F1E),
+    Color(0xFF170F16),
+    Color(0xFF081416),
+    Color(0xFF0D1117),
   ];
 
   static const lightBgs = [
@@ -25,6 +42,10 @@ class AppTheme {
     Color(0xFFFBF8F0),
     Color(0xFFF4F7FC),
     Color(0xFFFBF5F5),
+    Color(0xFFF7F4FD),
+    Color(0xFFFBF5F8),
+    Color(0xFFF2FAFA),
+    Color(0xFFF6F8FA),
   ];
 
   static ThemeData build(int accentIdx, Brightness brightness) {

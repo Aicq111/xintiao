@@ -10,7 +10,8 @@ import '../core/widget_bridge.dart';
 
 class HomePage extends StatefulWidget {
   final AppStore store;
-  const HomePage({super.key, required this.store});
+  final void Function(int tab)? onNavigateTab;
+  const HomePage({super.key, required this.store, this.onNavigateTab});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -55,6 +56,7 @@ class _HomePageState extends State<HomePage> {
         mode: widget.store.engineMode,
         specials: widget.store.engineSpecials,
         income: inc,
+        cfg: widget.store.cfg,
       );
 
   int _todayOf(Income inc) => accumulate(
@@ -66,11 +68,12 @@ class _HomePageState extends State<HomePage> {
         specials: widget.store.engineSpecials,
         income: inc,
         endMinute: _now.hour * 60 + _now.minute + _now.second / 60,
+        cfg: widget.store.cfg,
       );
 
   String get _status {
     final day = DateTime(_now.year, _now.month, _now.day);
-    final shift = shiftForDay(widget.store.engineMode, day);
+    final shift = shiftForDay(widget.store.engineMode, day, widget.store.cfg);
     if (shift == null) return '今日休息';
     final nowMin = _now.hour * 60 + _now.minute + _now.second / 60;
     if (nowMin >= shift.endMin) return '已下班';
@@ -91,7 +94,7 @@ class _HomePageState extends State<HomePage> {
 
   String get _workText {
     final day = DateTime(_now.year, _now.month, _now.day);
-    final shift = shiftForDay(widget.store.engineMode, day);
+    final shift = shiftForDay(widget.store.engineMode, day, widget.store.cfg);
     if (shift == null) return '今日休息';
     if (_status == '已下班') {
       final h = shift.billableMinutes ~/ 60;
@@ -99,7 +102,10 @@ class _HomePageState extends State<HomePage> {
       return '已下班 · 今日计薪 $h 小时 ${m.toString().padLeft(2, '0')} 分';
     }
     final worked = todayWorkSeconds(
-        now: _now, mode: widget.store.engineMode, specials: widget.store.engineSpecials);
+        now: _now,
+        mode: widget.store.engineMode,
+        specials: widget.store.engineSpecials,
+        cfg: widget.store.cfg);
     var left = shift.endMin -
         (_now.hour * 60 + _now.minute + _now.second / 60);
     if (left < 0) left = 0;
@@ -150,11 +156,20 @@ class _HomePageState extends State<HomePage> {
           mode: widget.store.engineMode,
           specials: widget.store.engineSpecials,
           incomes: incomes,
+          cfg: widget.store.cfg,
         );
-        final shift = shiftForDay(
-            widget.store.engineMode, DateTime(_now.year, _now.month, _now.day));
+        final shift = shiftForDay(widget.store.engineMode,
+            DateTime(_now.year, _now.month, _now.day), widget.store.cfg);
         final spToday =
             s.specials['${_now.year}-${_now.month}-${_now.day}'];
+
+        // 自动精度：所选单位下每秒跳不动时，逐级用更细单位显示（消除无意义补零）
+        var digits = s.minUnitIdx;
+        if (s.autoPrecision && rate > 0) {
+          while (digits < 4 && rate < AppState.minUnitMillis[digits]) {
+            digits++;
+          }
+        }
 
         return SafeArea(
           child: Column(
@@ -167,8 +182,21 @@ class _HomePageState extends State<HomePage> {
                     const Text('薪跳',
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.w800)),
-                    Text('📅   ⚙️',
-                        style: TextStyle(fontSize: 16, color: dim)),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => widget.onNavigateTab?.call(1),
+                          child: Icon(Icons.calendar_month_outlined,
+                              size: 22, color: dim),
+                        ),
+                        const SizedBox(width: 16),
+                        GestureDetector(
+                          onTap: () => widget.onNavigateTab?.call(3),
+                          child: Icon(Icons.settings_outlined,
+                              size: 22, color: dim),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -186,7 +214,7 @@ class _HomePageState extends State<HomePage> {
                         _viewIdx = (_viewIdx + 1) % (incomes.length + 1);
                       }),
                       child: Text(
-                        '¥ ${s.formatMoney(viewValue)} 元',
+                        '¥ ${s.formatMoneyWithDigits(viewValue, digits)} 元',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 48,

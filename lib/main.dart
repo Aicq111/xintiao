@@ -59,7 +59,9 @@ class _RootShellState extends State<RootShell> {
       body: IndexedStack(
         index: _tab,
         children: [
-          HomePage(store: widget.store),
+          HomePage(
+              store: widget.store,
+              onNavigateTab: (i) => setState(() => _tab = i)),
           CalendarPage(store: widget.store),
           StatsPage(store: widget.store),
           SettingsPage(store: widget.store),

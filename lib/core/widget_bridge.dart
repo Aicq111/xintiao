@@ -10,7 +10,16 @@ import 'store.dart';
 class WidgetBridge {
   static const _channel = MethodChannel('com.xintiao.widget');
 
-  static const accentHex = ['#34D399', '#F0C24B', '#60A5FA', '#F87171'];
+  static const accentHex = [
+    '#34D399',
+    '#F0C24B',
+    '#60A5FA',
+    '#F87171',
+    '#B388FF',
+    '#F2A6C4',
+    '#2DD4BF',
+    '#C9D3E4',
+  ];
 
   static Future<void> push(AppStore store, DateTime now) async {
     try {
@@ -18,14 +27,16 @@ class WidgetBridge {
       final incomes = store.engineIncomes;
       final mode = store.engineMode;
       final specials = store.engineSpecials;
+      final cfg = store.cfg;
       final nowMin = now.hour * 60 + now.minute + now.second / 60;
 
       int totalOf(Income inc) => accumulateSince(
           start: inc.startDay, now: now, mode: mode, specials: specials,
-          income: inc);
+          income: inc, cfg: cfg);
       int todayOf(Income inc) => accumulate(
           year: now.year, month: now.month, fromDay: now.day, toDay: now.day,
-          mode: mode, specials: specials, income: inc, endMinute: nowMin);
+          mode: mode, specials: specials, income: inc, endMinute: nowMin,
+          cfg: cfg);
 
       // 视图目标（全部收入 / 单份）
       var viewIncomes = incomes;
@@ -41,11 +52,12 @@ class WidgetBridge {
         todayMillis += todayOf(inc);
         monthMillis += accumulateSince(
             start: DateTime(now.year, now.month, 1), now: now, mode: mode,
-            specials: specials, income: inc);
+            specials: specials, income: inc, cfg: cfg);
       }
 
       // 状态
-      final shift = shiftForDay(mode, DateTime(now.year, now.month, now.day));
+      final shift =
+          shiftForDay(mode, DateTime(now.year, now.month, now.day), cfg);
       var status = '今日休息';
       var working = false;
       if (shift != null) {
@@ -63,7 +75,8 @@ class WidgetBridge {
 
       // 速率（厘/秒）
       final rate = currentRateMillisPerSec(
-          now: now, mode: mode, specials: specials, incomes: incomes);
+          now: now, mode: mode, specials: specials, incomes: incomes,
+          cfg: cfg);
       final rateText = '+${(rate / 100).toStringAsFixed(2)}厘/秒';
 
       // 发薪倒计时
@@ -107,7 +120,8 @@ class WidgetBridge {
           workText = '已下班 · 今日计薪 ${shift.billableMinutes ~/ 60}h';
         } else {
           final worked =
-              todayWorkSeconds(now: now, mode: mode, specials: specials);
+              todayWorkSeconds(now: now, mode: mode, specials: specials,
+                  cfg: cfg);
           var left = shift.endMin - nowMin;
           if (left < 0) left = 0;
           String dur(double secs) {

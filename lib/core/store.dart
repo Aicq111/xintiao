@@ -59,18 +59,71 @@ class IncomeData {
 
 /// 排班模式
 class ScheduleData {
-  final int mode; // 0 全天候 1 长白班 2 长夜班 3 两班倒 4 三班倒 5 自定义
+  final int mode; // 0 全天候 1 长白班 2 长夜班 3 两班倒 4 三班倒 5 自定义 6 自定义轮换
+  final List<ShiftDef> rotationShifts;
+  final int rotationAnchorYear;
+  final int rotationAnchorMonth;
+  final int rotationStartIdx;
 
-  const ScheduleData({this.mode = 1});
+  const ScheduleData({
+    this.mode = 1,
+    this.rotationShifts = const [],
+    this.rotationAnchorYear = 2026,
+    this.rotationAnchorMonth = 1,
+    this.rotationStartIdx = 0,
+  });
 
-  static const modeNames = ['全天候', '长白班', '长夜班', '两班倒', '三班倒', '自定义'];
+  static const modeNames = [
+    '全天候',
+    '长白班',
+    '长夜班',
+    '两班倒',
+    '三班倒',
+    '自定义',
+    '自定义轮换',
+  ];
+
+  /// 默认轮换模板：白班休周六 / 中班休周五 / 夜班休周四（上六休一，按月轮换）
+  static const defaultRotationShifts = [
+    ShiftDef(
+        name: '白班',
+        startMin: 8 * 60,
+        endMin: 17 * 60,
+        breaks: [BreakRange(12 * 60, 13 * 60)],
+        restWeekday: 5),
+    ShiftDef(name: '中班', startMin: 16 * 60, endMin: 24 * 60, restWeekday: 4),
+    ShiftDef(name: '夜班', startMin: 0, endMin: 8 * 60, restWeekday: 3),
+  ];
 
   ScheduleMode get engineMode => ScheduleMode.values[mode];
 
-  Map<String, dynamic> toJson() => {'mode': mode};
+  ScheduleCfg get cfg => ScheduleCfg(
+        engineMode,
+        rotationShifts: rotationShifts.isEmpty
+            ? defaultRotationShifts
+            : rotationShifts,
+        rotationAnchorYear: rotationAnchorYear,
+        rotationAnchorMonth: rotationAnchorMonth,
+        rotationStartIdx: rotationStartIdx,
+      );
 
-  factory ScheduleData.fromJson(Map<String, dynamic> j) =>
-      ScheduleData(mode: j['mode'] as int? ?? 1);
+  Map<String, dynamic> toJson() => {
+        'mode': mode,
+        'rotationShifts': rotationShifts.map((e) => e.toJson()).toList(),
+        'rotationAnchorYear': rotationAnchorYear,
+        'rotationAnchorMonth': rotationAnchorMonth,
+        'rotationStartIdx': rotationStartIdx,
+      };
+
+  factory ScheduleData.fromJson(Map<String, dynamic> j) => ScheduleData(
+        mode: j['mode'] as int? ?? 1,
+        rotationShifts: (j['rotationShifts'] as List? ?? [])
+            .map((e) => ShiftDef.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        rotationAnchorYear: j['rotationAnchorYear'] as int? ?? 2026,
+        rotationAnchorMonth: j['rotationAnchorMonth'] as int? ?? 1,
+        rotationStartIdx: j['rotationStartIdx'] as int? ?? 0,
+      );
 }
 
 /// 特殊日（加班 / 请假 / 调休）
@@ -125,7 +178,7 @@ class AppState {
   ScheduleData schedule;
   Map<String, SpecialDayData> specials; // 'y-m-d'
   int minUnitIdx; // 0元 1角 2分 3厘 4毫
-  int decimals; // 0..4
+  bool autoPrecision; // 自动提升精度：所选单位下每秒跳不动时，自动用更细单位显示
   int accentIdx; // 0..3
   int themeMode; // 0 跟随系统 1 深色 2 浅色
   int payDay; // 发薪日（1..28）
@@ -140,7 +193,7 @@ class AppState {
     this.schedule = const ScheduleData(),
     Map<String, SpecialDayData>? specials,
     this.minUnitIdx = 3,
-    this.decimals = 3,
+    this.autoPrecision = true,
     this.accentIdx = 0,
     this.themeMode = 0,
     this.payDay = 15,
@@ -167,10 +220,11 @@ class AppState {
   static const minUnitNames = ['元', '角', '分', '厘', '毫'];
   static const minUnitMillis = [10000, 1000, 100, 10, 1];
 
-  int get displayDigits => decimals < minUnitIdx ? minUnitIdx : decimals;
+  /// 金额格式化：按最小单位取整，显示位数 = 最小单位的位数
+  String formatMoney(int millis) => formatMoneyWithDigits(millis, minUnitIdx);
 
-  /// 金额格式化：按最小单位取整，显示位数取「更细的为准」
-  String formatMoney(int millis) {
+  /// 按指定小数位格式化（自动精度模式下主页使用）
+  String formatMoneyWithDigits(int millis, int digits) {
     final unit = minUnitMillis[minUnitIdx];
     final r = ((millis / unit).round()) * unit;
     final sign = r < 0 ? '-' : '';
@@ -178,9 +232,9 @@ class AppState {
     final intPart = (abs ~/ 10000)
         .toString()
         .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
-    final digits = displayDigits;
-    if (digits == 0) return '$sign$intPart';
-    final frac = (abs % 10000).toString().padLeft(4, '0').substring(0, digits);
+    final d = digits.clamp(0, 4).toInt();
+    if (d == 0) return '$sign$intPart';
+    final frac = (abs % 10000).toString().padLeft(4, '0').substring(0, d);
     return '$sign$intPart.$frac';
   }
 
@@ -189,7 +243,7 @@ class AppState {
         'schedule': schedule.toJson(),
         'specials': specials.map((k, v) => MapEntry(k, v.toJson())),
         'minUnit': minUnitIdx,
-        'decimals': decimals,
+        'autoPrecision': autoPrecision,
         'accent': accentIdx,
         'themeMode': themeMode,
         'payDay': payDay,
@@ -210,7 +264,7 @@ class AppState {
         specials: (j['specials'] as Map? ?? {}).map((k, v) => MapEntry(
             k as String, SpecialDayData.fromJson(v as Map<String, dynamic>))),
         minUnitIdx: j['minUnit'] as int? ?? 3,
-        decimals: j['decimals'] as int? ?? 3,
+        autoPrecision: j['autoPrecision'] as bool? ?? true,
         accentIdx: j['accent'] as int? ?? 0,
         themeMode: j['themeMode'] as int? ?? 0,
         payDay: j['payDay'] as int? ?? 15,
@@ -253,6 +307,8 @@ class AppStore extends ChangeNotifier {
   }
 
   ScheduleMode get engineMode => state.schedule.engineMode;
+
+  ScheduleCfg get cfg => state.schedule.cfg;
 
   Map<String, SpecialDay> get engineSpecials =>
       state.specials.map((k, v) => MapEntry(k, v.toEngine()));

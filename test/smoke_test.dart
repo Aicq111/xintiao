@@ -18,9 +18,9 @@ void main() {
     final sched = const ScheduleData(mode: 2);
     expect(sched.engineMode, ScheduleMode.nightShift);
 
-    expect(AppTheme.accents.length, 4);
-    expect(AppTheme.accentNames.length, 4);
-    expect(WidgetBridge.accentHex.length, 4);
+    expect(AppTheme.accents.length, 8);
+    expect(AppTheme.accentNames.length, 8);
+    expect(WidgetBridge.accentHex.length, 8);
 
     // 序列化往返
     final json = store.state.toJson();
