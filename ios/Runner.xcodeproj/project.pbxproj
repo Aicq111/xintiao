@@ -99,6 +99,7 @@
 				B10000000000000000000003 /* Runner-Bridging-Header.h */,
 				AB0000000000000000000006 /* Runner.entitlements */,
 			);
+			path = Runner;
 			sourceTree = "<group>";
 		};
 		AC0000000000000000000001 /* XinTiaoWidget */ = {
