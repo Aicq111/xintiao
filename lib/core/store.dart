@@ -64,6 +64,7 @@ class ScheduleData {
   final int rotationAnchorYear;
   final int rotationAnchorMonth;
   final int rotationStartIdx;
+  final Map<int, List<ShiftDef>> modeShifts; // 标准模式自定义班次时间
 
   const ScheduleData({
     this.mode = 1,
@@ -71,6 +72,7 @@ class ScheduleData {
     this.rotationAnchorYear = 2026,
     this.rotationAnchorMonth = 1,
     this.rotationStartIdx = 0,
+    this.modeShifts = const {},
   });
 
   static const modeNames = [
@@ -105,6 +107,7 @@ class ScheduleData {
         rotationAnchorYear: rotationAnchorYear,
         rotationAnchorMonth: rotationAnchorMonth,
         rotationStartIdx: rotationStartIdx,
+        modeShifts: modeShifts,
       );
 
   Map<String, dynamic> toJson() => {
@@ -113,6 +116,8 @@ class ScheduleData {
         'rotationAnchorYear': rotationAnchorYear,
         'rotationAnchorMonth': rotationAnchorMonth,
         'rotationStartIdx': rotationStartIdx,
+        'modeShifts': modeShifts.map(
+            (k, v) => MapEntry('$k', v.map((e) => e.toJson()).toList())),
       };
 
   factory ScheduleData.fromJson(Map<String, dynamic> j) => ScheduleData(
@@ -123,6 +128,9 @@ class ScheduleData {
         rotationAnchorYear: j['rotationAnchorYear'] as int? ?? 2026,
         rotationAnchorMonth: j['rotationAnchorMonth'] as int? ?? 1,
         rotationStartIdx: j['rotationStartIdx'] as int? ?? 0,
+        modeShifts: (j['modeShifts'] as Map<String, dynamic>? ?? {}).map(
+            (k, v) => MapEntry(int.parse(k),
+                (v as List).map((e) => ShiftDef.fromJson(e as Map<String, dynamic>)).toList())),
       );
 }
 

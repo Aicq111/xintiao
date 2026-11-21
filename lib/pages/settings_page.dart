@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../core/backup_service.dart';
 import 'rotation_editor.dart';
+import 'mode_shift_editor.dart';
 import '../core/store.dart';
 import '../core/theme.dart';
 import 'income_page.dart';
@@ -962,6 +963,16 @@ class ScheduleSettingsPage extends StatelessWidget {
                   onPressed: () => openRotationEditor(context, store),
                   icon: Icon(Icons.tune, size: 18, color: accent),
                   label: Text('编辑轮换班次（时间 / 每班休息日 / 本月班次）',
+                      style: TextStyle(fontSize: 13, color: accent)),
+                ),
+              ],
+              if (s.schedule.mode >= 1 && s.schedule.mode <= 5) ...[
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      openModeShiftEditor(context, store, s.schedule.mode),
+                  icon: Icon(Icons.schedule, size: 18, color: accent),
+                  label: Text('编辑工作时间（上下班 / 中间休息）',
                       style: TextStyle(fontSize: 13, color: accent)),
                 ),
               ],

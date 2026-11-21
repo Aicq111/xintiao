@@ -89,6 +89,7 @@ class ScheduleCfg {
   final int rotationAnchorYear;
   final int rotationAnchorMonth;
   final int rotationStartIdx; // 锚定月所在班次下标
+  final Map<int, List<ShiftDef>> modeShifts; // 标准模式的自定义班次时间
 
   const ScheduleCfg(
     this.mode, {
@@ -96,6 +97,7 @@ class ScheduleCfg {
     this.rotationAnchorYear = 2026,
     this.rotationAnchorMonth = 1,
     this.rotationStartIdx = 0,
+    this.modeShifts = const {},
   });
 
   /// 按月轮换：本月班次 = (绝对月数 + 起始下标) mod 班次数
@@ -106,6 +108,14 @@ class ScheduleCfg {
     final n = rotationShifts.length;
     final idx = ((mIdx % n) + n + rotationStartIdx) % n;
     return rotationShifts[idx];
+  }
+
+  /// 标准模式的自定义班次（无自定义时返回 null）
+  ShiftDef? modeShiftAt(ScheduleMode mode, int idx) {
+    final list = modeShifts[mode.index];
+    if (list == null || list.isEmpty) return null;
+    if (idx >= list.length) return null;
+    return list[idx];
   }
 }
 
@@ -204,13 +214,18 @@ Shift? shiftForDay(ScheduleMode mode, DateTime d, [ScheduleCfg? cfg]) {
       return shiftFull;
     case ScheduleMode.dayShift:
     case ScheduleMode.custom:
-      return w >= 5 ? null : shiftBai;
+      return w >= 5 ? null : (cfg?.modeShiftAt(mode, 0)?.shift ?? shiftBai);
     case ScheduleMode.nightShift:
-      return w >= 5 ? null : shiftYe;
+      return w >= 5 ? null : (cfg?.modeShiftAt(mode, 0)?.shift ?? shiftYe);
     case ScheduleMode.twoShift:
-      return w >= 5 ? null : (weekIndexOf(d).isOdd ? shiftBai : shiftYe);
+      final a = cfg?.modeShiftAt(mode, 0)?.shift ?? shiftBai;
+      final b = cfg?.modeShiftAt(mode, 1)?.shift ?? shiftYe;
+      return w >= 5 ? null : (weekIndexOf(d).isOdd ? a : b);
     case ScheduleMode.threeShift:
-      return w >= 5 ? null : [shiftZao, shiftZhong, shiftWan][idx % 3];
+      final a = cfg?.modeShiftAt(mode, 0)?.shift ?? shiftZao;
+      final b = cfg?.modeShiftAt(mode, 1)?.shift ?? shiftZhong;
+      final c = cfg?.modeShiftAt(mode, 2)?.shift ?? shiftWan;
+      return w >= 5 ? null : [a, b, c][idx % 3];
     case ScheduleMode.customRotation:
       final def = cfg?.rotationShiftFor(d);
       if (def == null) return null;

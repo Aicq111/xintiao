@@ -490,17 +490,30 @@ class _CalendarPageState extends State<CalendarPage> {
         date.month == today.month &&
         date.day == today.day;
     final accent = Theme.of(c).colorScheme.primary;
+    // 修改过的日期（特殊日/排班覆盖）高亮：彩色边框 + 浅色底
+    Color? spColor;
+    if (sp != null) {
+      spColor = switch (sp.type) {
+        'overtime' => C.gold(c),
+        'leave' || 'rest' || 'shift' || _ => C.blue(c),
+      };
+    }
+    final cellBorder = isToday
+        ? accent
+        : (spColor ?? (rest ? Colors.transparent : C.line(c)));
+    final cellBg = spColor != null
+        ? spColor.withAlpha(26)
+        : (rest ? C.card(c).withAlpha(46) : C.card(c));
     return GestureDetector(
       onTap: () => _openDay(dayNum),
       child: Container(
         height: 49,
         decoration: BoxDecoration(
-          color: rest ? C.card(c).withAlpha(46) : C.card(c),
+          color: cellBg,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color:
-                isToday ? accent : (rest ? Colors.transparent : C.line(c)),
-            width: isToday ? 1.4 : 0.8,
+            color: cellBorder,
+            width: (isToday || spColor != null) ? 1.4 : 0.8,
           ),
           boxShadow: isToday
               ? [BoxShadow(color: accent.withAlpha(50), blurRadius: 10)]
