@@ -1,22 +1,14 @@
-# 薪跳 · iOS 云构建（GitHub Actions，免费 macOS 环境）
+# 薪跳 · iOS 云构建（GitHub Actions 免费 macOS）
 name: ios-build
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    # 每 2 小时自动重试（GitHub 服务器自行触发，无需本地电脑）
-    - cron: '17 */2 * * *'
 
 jobs:
   build-ios:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15]
-        slot: [1, 2]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: 检出代码
@@ -70,7 +62,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Runner-ipa-${{ matrix.os }}-${{ matrix.slot }}
+          name: Runner-ipa
           path: Runner.ipa
           if-no-files-found: error
 
@@ -78,6 +70,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Runner-app-${{ matrix.os }}-${{ matrix.slot }}
+          name: Runner-app
           path: build/ios/iphoneos/Runner.app
           if-no-files-found: error
