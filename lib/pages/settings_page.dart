@@ -3,14 +3,14 @@
 // ============================================================
 import 'package:flutter/material.dart';
 import '../core/backup_service.dart';
+import 'rotation_editor.dart';
 import '../core/store.dart';
 import '../core/theme.dart';
 import 'income_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final AppStore store;
-  final void Function(int tab)? onNavigateTab;
-  const SettingsPage({super.key, required this.store, this.onNavigateTab});
+  const SettingsPage({super.key, required this.store});
 
   static String _themeModeName(int m) =>
       m == 0 ? '跟随系统' : (m == 1 ? '深色' : '浅色');
@@ -49,10 +49,8 @@ class SettingsPage extends StatelessWidget {
               _card(context, [
                 _row(context, '📅', '排班与特殊日',
                     ScheduleData.modeNames[s.schedule.mode],
-                    () => onNavigateTab?.call(1)),
-                _switchRow(context, '🏮', '中国法定节假日日历',
-                    '自动标注节假日与调休上班日', s.holidayMark,
-                    (v) => store.update((st) => st.holidayMark = v)),
+                    () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => ScheduleSettingsPage(store: store)))),
               ]),
               _label(context, '显示与主题'),
               _card(context, [
@@ -861,6 +859,144 @@ class _ImportSheetState extends State<_ImportSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+// ============================================================
+// 排班与特殊日设置页
+// ============================================================
+class ScheduleSettingsPage extends StatelessWidget {
+  final AppStore store;
+  const ScheduleSettingsPage({super.key, required this.store});
+
+  static String _modeHint(int mode) {
+    switch (mode) {
+      case 0:
+        return '全天候：每天 24 小时计薪，适合副业/理财';
+      case 1:
+        return '长白班：周一至周五 8:00–17:00（午休 1 小时），周末休息';
+      case 2:
+        return '长夜班：周一至周五 20:00–次日 6:00（宵夜 1 小时），周末休息';
+      case 3:
+        return '两班倒：按周轮换白班/夜班，周末休息';
+      case 4:
+        return '三班倒：早/中/晚按天循环，周末休息';
+      case 5:
+        return '自定义：同长白班（后续可改班次时间）';
+      case 6:
+        return '自定义轮换：按月轮换班次，每个班次有固定休息日（上六休一）';
+      default:
+        return '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final s = store.state;
+        final accent = Theme.of(context).colorScheme.primary;
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text('排班与特殊日',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          ),
+          body: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              Text('排班模式', style: TextStyle(fontSize: 12, color: C.dim(context))),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var i = 0; i < ScheduleData.modeNames.length; i++)
+                    GestureDetector(
+                      onTap: () =>
+                          store.update((st) => st.schedule = ScheduleData(
+                                mode: i,
+                                rotationShifts: st.schedule.rotationShifts,
+                                rotationAnchorYear: st.schedule.rotationAnchorYear,
+                                rotationAnchorMonth: st.schedule.rotationAnchorMonth,
+                                rotationStartIdx: st.schedule.rotationStartIdx,
+                              )),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 13, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: s.schedule.mode == i
+                              ? C.accentDim(context)
+                              : C.card(context),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                              color: s.schedule.mode == i
+                                  ? accent
+                                  : C.line(context)),
+                        ),
+                        child: Text(ScheduleData.modeNames[i],
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: s.schedule.mode == i
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                color: s.schedule.mode == i
+                                    ? accent
+                                    : C.dim(context))),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(_modeHint(s.schedule.mode),
+                  style: TextStyle(
+                      fontSize: 11, color: C.dim(context), height: 1.6)),
+              if (s.schedule.mode == 6) ...[
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: () => openRotationEditor(context, store),
+                  icon: Icon(Icons.tune, size: 18, color: accent),
+                  label: Text('编辑轮换班次（时间 / 每班休息日 / 本月班次）',
+                      style: TextStyle(fontSize: 13, color: accent)),
+                ),
+              ],
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: C.card(context),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: C.line(context)),
+                ),
+                child: SwitchListTile(
+                  title: const Text('中国法定节假日日历',
+                      style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    '自动在日历标注法定节假日与调休上班日',
+                    style: TextStyle(fontSize: 11, color: C.dim(context)),
+                  ),
+                  value: s.holidayMark,
+                  activeColor: accent,
+                  onChanged: (v) =>
+                      store.update((st) => st.holidayMark = v),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '加班 / 请假 / 调休等特殊日的标记，请到「日历」页点击对应日期操作；\n也可以点日历页右上角「识别排班」用截图自动套用。',
+                style: TextStyle(
+                    fontSize: 11, color: C.dim(context), height: 1.7),
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
+        );
+      },
     );
   }
 }
