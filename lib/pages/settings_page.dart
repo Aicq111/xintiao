@@ -2,6 +2,7 @@
 // 薪跳 · 设置页（含：显示设置 / 主题 / 发薪日 / 帧率 / 小组件设置）
 // ============================================================
 import 'package:flutter/material.dart';
+import '../core/backup_service.dart';
 import '../core/store.dart';
 import '../core/theme.dart';
 import 'calendar_page.dart';
@@ -72,10 +73,19 @@ class SettingsPage extends StatelessWidget {
                     () => Navigator.push(context,
                         MaterialPageRoute(builder: (_) => WidgetSettingsPage(store: store)))),
               ]),
+              _label(context, '数据备份与迁移'),
+              _card(context, [
+                _row(context, '📤', '导出备份',
+                    '复制到剪贴板 · 微信/QQ 发给另一台手机',
+                    () => _exportSheet(context)),
+                _row(context, '📥', '导入备份',
+                    '粘贴另一台手机的备份 · 覆盖本机数据',
+                    () => _importSheet(context)),
+              ]),
               const SizedBox(height: 20),
               Center(
                 child: Text(
-                  '薪跳 · 版本 0.1.0\n数据仅保存在本机 · 累计起点默认每月 1 号',
+                  '薪跳 · 版本 0.1.0\n数据仅保存在本机 · 双设备可用「导出/导入」同步',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 11, color: C.dim(context), height: 1.8),
@@ -86,6 +96,74 @@ class SettingsPage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  // ---------- 数据备份与迁移 ----------
+  void _exportSheet(BuildContext c) {
+    showModalBottomSheet(
+      context: c,
+      backgroundColor: C.card(c),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: C.line(c), borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text('导出备份',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(
+              '备份包含：全部收入、排班模式、特殊日、主题与所有设置。\n点击下方按钮后，内容会复制到剪贴板，粘贴发送给另一台设备（微信/QQ/AirDrop 均可）。',
+              style: TextStyle(
+                  fontSize: 11, color: C.dim(c), height: 1.7),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(c).colorScheme.primary,
+                    foregroundColor: const Color(0xFF06231A)),
+                onPressed: () async {
+                  await BackupService.exportToClipboard(store.state);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  ScaffoldMessenger.of(c).showSnackBar(const SnackBar(
+                      content: Text('已复制到剪贴板！去微信/QQ 粘贴发给另一台手机吧')));
+                },
+                icon: const Icon(Icons.copy_all, size: 18),
+                label: const Text('复制备份内容',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _importSheet(BuildContext c) {
+    final accent = Theme.of(c).colorScheme.primary;
+    showModalBottomSheet(
+      context: c,
+      isScrollControlled: true,
+      backgroundColor: C.card(c),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _ImportSheet(store: store, accent: accent),
     );
   }
 
@@ -661,6 +739,131 @@ class WidgetSettingsPage extends StatelessWidget {
                 fontSize: 12,
                 fontWeight: on ? FontWeight.w700 : FontWeight.w400,
                 color: on ? accent : C.dim(c))),
+      ),
+    );
+  }
+}
+
+
+// ============================================================
+// 导入备份弹层
+// ============================================================
+class _ImportSheet extends StatefulWidget {
+  final AppStore store;
+  final Color accent;
+  const _ImportSheet({required this.store, required this.accent});
+
+  @override
+  State<_ImportSheet> createState() => _ImportSheetState();
+}
+
+class _ImportSheetState extends State<_ImportSheet> {
+  final _ctrl = TextEditingController();
+  BackupResult? _parsed;
+  bool _parsing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    BackupService.readClipboard().then((t) {
+      if (t.isNotEmpty && mounted && _ctrl.text.isEmpty) {
+        _ctrl.text = t;
+      }
+    });
+  }
+
+  void _check() {
+    setState(() {
+      _parsing = true;
+      _parsed = BackupService.importJson(_ctrl.text);
+      _parsing = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = _parsed?.state;
+    return Padding(
+      padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 12,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: C.line(context), borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('导入备份',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text('粘贴另一台设备导出的备份内容（已自动读取剪贴板）',
+              style: TextStyle(fontSize: 11, color: C.dim(context))),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _ctrl,
+            maxLines: 6,
+            style: const TextStyle(fontSize: 11),
+            decoration: InputDecoration(
+              hintText: '粘贴备份内容…',
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_parsed != null && !_parsed!.ok)
+            Text('❌ ',
+                style: TextStyle(fontSize: 12, color: C.red(context))),
+          if (_parsed != null && _parsed!.ok && s != null) ...[
+            Text(
+              '✅ 备份有效：收入  笔 · 排班「」 · 特殊日  处',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF34D399)),
+            ),
+            const SizedBox(height: 6),
+            Text('导入将覆盖本机现有数据，请确认',
+                style: TextStyle(fontSize: 11, color: C.dim(context))),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _check,
+                  child: const Text('检查内容'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: widget.accent,
+                      foregroundColor: const Color(0xFF06231A)),
+                  onPressed: (_parsed?.ok ?? false)
+                      ? () {
+                          widget.store
+                              .replaceState(_parsed!.state!);
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('导入成功！数据已同步')));
+                        }
+                      : null,
+                  child: const Text('确认导入',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -310,6 +310,13 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 整体替换状态（导入备份时使用）
+  void replaceState(AppState s) {
+    _state = s;
+    save();
+    notifyListeners();
+  }
+
   ScheduleMode get engineMode => state.schedule.engineMode;
 
   ScheduleCfg get cfg => state.schedule.cfg;
