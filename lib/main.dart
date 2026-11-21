@@ -64,7 +64,9 @@ class _RootShellState extends State<RootShell> {
               onNavigateTab: (i) => setState(() => _tab = i)),
           CalendarPage(store: widget.store),
           StatsPage(store: widget.store),
-          SettingsPage(store: widget.store),
+          SettingsPage(
+              store: widget.store,
+              onNavigateTab: (i) => setState(() => _tab = i)),
         ],
       ),
       bottomNavigationBar: NavigationBar(

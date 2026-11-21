@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import '../core/backup_service.dart';
 import '../core/store.dart';
 import '../core/theme.dart';
-import 'calendar_page.dart';
 import 'income_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final AppStore store;
-  const SettingsPage({super.key, required this.store});
+  final void Function(int tab)? onNavigateTab;
+  const SettingsPage({super.key, required this.store, this.onNavigateTab});
 
   static String _themeModeName(int m) =>
       m == 0 ? '跟随系统' : (m == 1 ? '深色' : '浅色');
@@ -49,8 +49,7 @@ class SettingsPage extends StatelessWidget {
               _card(context, [
                 _row(context, '📅', '排班与特殊日',
                     ScheduleData.modeNames[s.schedule.mode],
-                    () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => CalendarPage(store: store)))),
+                    () => onNavigateTab?.call(1)),
                 _switchRow(context, '🏮', '中国法定节假日日历',
                     '自动标注节假日与调休上班日', s.holidayMark,
                     (v) => store.update((st) => st.holidayMark = v)),
@@ -433,9 +432,6 @@ class DisplaySettingsPage extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: accent,
                         fontFeatures: const [FontFeature.tabularFigures()],
-                        shadows: [
-                          Shadow(color: accent.withAlpha(80), blurRadius: 20),
-                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
