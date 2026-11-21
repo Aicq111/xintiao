@@ -312,7 +312,7 @@ class AppStore extends ChangeNotifier {
 
   /// 整体替换状态（导入备份时使用）
   void replaceState(AppState s) {
-    _state = s;
+    state = s;
     save();
     notifyListeners();
   }
