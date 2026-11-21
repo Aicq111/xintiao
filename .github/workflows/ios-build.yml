@@ -30,7 +30,9 @@ jobs:
         run: flutter config --no-enable-swift-package-manager
 
       - name: 运行引擎测试（13 项）
-        run: flutter test
+        run: |
+          set -o pipefail
+          flutter test 2>&1 | tee test.log
 
       - name: 构建 iOS（无签名）
         run: |
@@ -41,10 +43,12 @@ jobs:
         if: failure()
         run: |
           python3 - <<'PYEOF'
-          import urllib.parse
-          log = open('build.log', encoding='utf-8', errors='replace').read()
-          tail = '\n'.join(log.splitlines()[-100:])
-          print('::error::' + urllib.parse.quote(tail, safe=''))
+          import urllib.parse, os
+          name = 'test.log' if os.path.exists('test.log') else 'build.log'
+          if os.path.exists(name):
+              log = open(name, encoding='utf-8', errors='replace').read()
+              tail = '\n'.join(log.splitlines()[-120:])
+              print('::error::' + urllib.parse.quote(tail, safe=''))
           PYEOF
 
       - name: 制作无小组件安装包（免费签名兼容）
