@@ -312,8 +312,8 @@ int accumulate({
   final days = daysInMonth(year, month);
   double rate; // 毫/秒
   if (income.followSchedule) {
-    rate = income.amountYuan * 10000 /
-        monthlyBillableSeconds(year, month, mode, cfg);
+    final baseSec = monthlyBillableSeconds(year, month, mode, cfg);
+    rate = baseSec > 0 ? income.amountYuan * 10000 / baseSec : 0;
   } else {
     final periodSec = switch (income.period) {
       'monthly' => days * 86400,
@@ -392,8 +392,8 @@ double currentRateMillisPerSec({
       if (periodSec > 0) rate += inc.amountYuan * 10000 / periodSec;
       continue;
     }
-    final base = inc.amountYuan * 10000 /
-        monthlyBillableSeconds(now.year, now.month, mode, cfg);
+    final baseSec = monthlyBillableSeconds(now.year, now.month, mode, cfg);
+    final base = baseSec > 0 ? inc.amountYuan * 10000 / baseSec : 0;
     final iv = ivs.where((x) => nowAbs >= x.startMinAbs && nowAbs < x.endMinAbs);
     if (iv.isEmpty) continue; // 班外 / 休息 / 请假：不涨
     final m = inc.participateMultiplier ? iv.first.mult : 1.0;
@@ -411,6 +411,8 @@ int accumulateSince({
   required Income income,
   ScheduleCfg? cfg,
 }) {
+  // 防御：起点在未来（如发薪日调整导致的边界）直接返回 0，避免死循环/负数
+  if (start.isAfter(now)) return 0;
   var total = 0;
   var cur = DateTime(start.year, start.month);
   while (true) {

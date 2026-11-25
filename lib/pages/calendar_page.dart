@@ -192,6 +192,19 @@ class _CalendarPageState extends State<CalendarPage> {
         shiftForDay(widget.store.engineMode, date, widget.store.cfg);
     final key = _key(day);
     final existing = widget.store.state.specials[key];
+    final dayMillis = widget.store.engineIncomes.fold<int>(
+        0,
+        (a, b) =>
+            a +
+            accumulate(
+                year: date.year,
+                month: date.month,
+                fromDay: date.day,
+                toDay: date.day,
+                mode: widget.store.engineMode,
+                specials: widget.store.engineSpecials,
+                income: b,
+                cfg: widget.store.cfg));
     final result = await showModalBottomSheet<Object>(
       context: context,
       isScrollControlled: true,
@@ -204,6 +217,7 @@ class _CalendarPageState extends State<CalendarPage> {
         shift: shift,
         existing: existing,
         defaultShiftIdx: _defaultShiftIdx(),
+        dayMillis: dayMillis,
       ),
     );
     if (result == null) return;
@@ -242,6 +256,16 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
           ),
           child: SafeArea(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              final v = details.primaryVelocity ?? 0;
+              if (v < -200) {
+                _nextMonth();
+              } else if (v > 200) {
+                _prevMonth();
+              }
+            },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -252,50 +276,25 @@ class _CalendarPageState extends State<CalendarPage> {
                     const Text('日历 · 排班与特殊日',
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w800)),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _ocrBusy ? null : _openOcrFlow,
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-                        child: Row(
-                          children: [
-                            Icon(Icons.document_scanner_outlined,
-                                size: 16, color: accent),
-                            const SizedBox(width: 3),
-                            Text(_ocrBusy ? '识别中…' : '识别排班',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: accent,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (s.schedule.mode == 6)
-                      GestureDetector(
-                        onTap: _openRotationEditor,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 14),
-                          child: Text('编辑轮换',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: accent,
-                                  fontWeight: FontWeight.w600)),
-                        ),
-                      ),
-                    GestureDetector(
-                      onTap: _openBatchSheet,
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 6, 0, 6),
-                        child: Text('＋批量标记',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: accent,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Row(
+                  children: [
+                    _actionChip(context, accent,
+                        Icons.document_scanner_outlined,
+                        _ocrBusy ? '识别中…' : '识别排班',
+                        _ocrBusy ? null : _openOcrFlow),
+                    if (s.schedule.mode == 6) ...[
+                      const SizedBox(width: 8),
+                      _actionChip(context, accent, Icons.tune, '编辑轮换',
+                          _openRotationEditor),
+                    ],
+                    const SizedBox(width: 8),
+                    _actionChip(context, accent, Icons.event_repeat,
+                        '批量标记', _openBatchSheet),
                   ],
                 ),
               ),
@@ -451,9 +450,37 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ],
           ),
+          ),
         ),
         );
       },
+    );
+  }
+
+  Widget _actionChip(BuildContext c, Color accent, IconData icon, String label,
+      VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: C.accentDim(c),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accent.withAlpha(140)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: accent),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    color: accent,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -607,11 +634,13 @@ class _DaySheet extends StatefulWidget {
   final Shift? shift;
   final SpecialDayData? existing;
   final int defaultShiftIdx;
+  final int dayMillis;
   const _DaySheet({
     required this.date,
     required this.shift,
     required this.existing,
     required this.defaultShiftIdx,
+    required this.dayMillis,
   });
 
   @override
@@ -724,6 +753,32 @@ class _DaySheetState extends State<_DaySheet> {
           Text(
             '${widget.date.month}月${widget.date.day}日 · 周${_wdNames[widget.date.weekday - 1]} · $shiftName',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: C.accentDim(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accent.withAlpha(120)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.payments_outlined, size: 16, color: accent),
+                const SizedBox(width: 6),
+                Text('当日预计收入',
+                    style: TextStyle(fontSize: 12, color: C.dim(context))),
+                const Spacer(),
+                Text(
+                  '¥ ${(widget.dayMillis / 10000).toStringAsFixed(2)} 元',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
+                      fontFeatures: const [FontFeature.tabularFigures()]),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           Container(

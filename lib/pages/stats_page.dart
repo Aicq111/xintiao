@@ -155,6 +155,48 @@ class _StatsPageState extends State<StatsPage> {
 
         final monthTotal = totals.isEmpty ? 0.0 : totals.last;
 
+        // 收入构成（本月截至今天）
+        final incomeMonthTotals = <double>[
+          for (final arr in series)
+            arr.fold<double>(0, (a, b) => a + b),
+        ];
+        final monthSum =
+            incomeMonthTotals.fold<double>(0, (a, b) => a + b);
+
+        // 本月预计（整月完整计薪）
+        var monthProjection = 0.0;
+        for (final inc in incomes) {
+          monthProjection += accumulate(
+                year: now.year,
+                month: now.month,
+                fromDay: 1,
+                toDay: days,
+                mode: mode,
+                specials: specials,
+                income: inc,
+                cfg: cfg,
+              ) /
+              10000.0;
+        }
+
+        // 加班 / 请假小时（本月截至今天）
+        var otHours = 0.0, lvHours = 0.0;
+        for (var d = 1; d <= days; d++) {
+          final ivs = dayIntervals(
+              DateTime(now.year, now.month, d), mode, specials, cfg);
+          for (final iv in ivs) {
+            final h = (iv.endMinAbs - iv.startMinAbs) / 60.0;
+            if (iv.mult > 1.0) otHours += h;
+          }
+          final sp = specials['${now.year}-${now.month}-$d'];
+          if (sp != null &&
+              sp.type == SpecialType.leave &&
+              sp.leaveStartMin != null &&
+              sp.leaveEndMin != null) {
+            lvHours += (sp.leaveEndMin! - sp.leaveStartMin!) / 60.0;
+          }
+        }
+
         return SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -186,6 +228,76 @@ class _StatsPageState extends State<StatsPage> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: C.card(context),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: C.line(context)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('收入构成（本月至今）',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 10),
+                          for (var i = 0; i < incomes.length; i++) ...[
+                            Row(
+                              children: [
+                                Expanded(
+                                    child: Text(incomes[i].name,
+                                        style: TextStyle(
+                                            fontSize: 12, color: dim))),
+                                Text(
+                                    '¥ ${incomeMonthTotals[i].toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: _seriesColor(context, i))),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: LinearProgressIndicator(
+                                value: monthSum > 0
+                                    ? incomeMonthTotals[i] / monthSum
+                                    : 0,
+                                minHeight: 6,
+                                color: _seriesColor(context, i),
+                                backgroundColor: C.line(context),
+                              ),
+                            ),
+                            if (i != incomes.length - 1)
+                              const SizedBox(height: 10),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: C.card(context),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: C.line(context)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                              child: _stat2(context, '本月预计',
+                                  '¥ ${monthProjection.toStringAsFixed(0)}')),
+                          Expanded(
+                              child: _stat2(context, '加班',
+                                  '${otHours.toStringAsFixed(1)} 小时')),
+                          Expanded(
+                              child: _stat2(context, '请假',
+                                  '${lvHours.toStringAsFixed(1)} 小时')),
+                        ],
+                      ),
+                    ),
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -361,6 +473,19 @@ class _StatsPageState extends State<StatsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _stat2(BuildContext c, String label, String value) {
+    final accent = Theme.of(c).colorScheme.primary;
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 11, color: C.dim(c))),
+        const SizedBox(height: 4),
+        Text(value,
+            style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w800, color: accent)),
+      ],
     );
   }
 }

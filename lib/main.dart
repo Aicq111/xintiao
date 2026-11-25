@@ -2,6 +2,7 @@
 // 薪跳 · 入口与导航壳（4 个 Tab + 主题切换 + 数据加载）
 // ============================================================
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/store.dart';
 import 'core/theme.dart';
 import 'pages/calendar_page.dart';
@@ -35,6 +36,14 @@ class XinTiaoApp extends StatelessWidget {
           theme: AppTheme.build(s.accentIdx, Brightness.light),
           darkTheme: AppTheme.build(s.accentIdx, Brightness.dark),
           themeMode: mode,
+          // 中文界面：时间/日期选择器等系统组件显示中文
+          locale: const Locale('zh', 'CN'),
+          supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: RootShell(store: store),
         );
       },

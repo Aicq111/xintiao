@@ -239,6 +239,7 @@ class AppState {
   String formatMoneyWithDigits(int millis, int digits) {
     final unit = minUnitMillis[minUnitIdx];
     final r = ((millis / unit).round()) * unit;
+    if (r.abs() > 9007199254740991) return '0'; // 防御异常值
     final sign = r < 0 ? '-' : '';
     final abs = r.abs();
     final intPart = (abs ~/ 10000)
