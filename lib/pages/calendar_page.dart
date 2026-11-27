@@ -18,7 +18,13 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  // 平滑翻页：PageView 以「当前月=第 1200 页」为锚，可前后无限滑动
+  late final DateTime _base =
+      DateTime(DateTime.now().year, DateTime.now().month - 1200, 1);
+  late final PageController _pageCtrl = PageController(initialPage: 1200);
+  int _page = 1200;
+
+  DateTime get _month => DateTime(_base.year, _base.month + _page);
 
   // 汇总缓存：月度计薪小时数只在月/模式/特殊日变化时重算
   String _sumKey = '';
@@ -76,8 +82,12 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
-  void _prevMonth() => setState(() => _month = DateTime(_month.year, _month.month - 1, 1));
-  void _nextMonth() => setState(() => _month = DateTime(_month.year, _month.month + 1, 1));
+  void _prevMonth() => _pageCtrl.animateToPage(_page - 1,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic);
+  void _nextMonth() => _pageCtrl.animateToPage(_page + 1,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic);
 
   void _openRotationEditor() => openRotationEditor(context, widget.store);
 
@@ -239,9 +249,6 @@ class _CalendarPageState extends State<CalendarPage> {
         final s = widget.store.state;
         final accent = Theme.of(context).colorScheme.primary;
         final dim = C.dim(context);
-        final first = DateTime(_month.year, _month.month, 1);
-        final offset = first.weekday - 1; // 0=周一
-        final days = daysInMonth(_month.year, _month.month);
         final today = DateTime.now();
 
         // 本月实际计薪小时（缓存重算，避免每次构建全月区间计算）
@@ -259,16 +266,6 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
           ),
           child: SafeArea(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onHorizontalDragEnd: (details) {
-              final v = details.primaryVelocity ?? 0;
-              if (v < -200) {
-                _nextMonth();
-              } else if (v > 200) {
-                _prevMonth();
-              }
-            },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -345,63 +342,102 @@ class _CalendarPageState extends State<CalendarPage> {
                   style: TextStyle(fontSize: 11, color: dim, height: 1.5),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('${_month.year} 年 ${_month.month} 月',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800)),
-                    Row(
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageCtrl,
+                  onPageChanged: (p) => setState(() => _page = p),
+                  itemBuilder: (ctx, p) {
+                    final month = DateTime(_base.year, _base.month + p);
+                    final offset =
+                        DateTime(month.year, month.month, 1).weekday - 1;
+                    final mdays = daysInMonth(month.year, month.month);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        GestureDetector(
-                            onTap: _prevMonth,
-                            child: Icon(Icons.chevron_left, color: dim)),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                            onTap: _nextMonth,
-                            child: Icon(Icons.chevron_right, color: dim)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    for (final w in const ['一', '二', '三', '四', '五', '六', '日'])
-                      Expanded(
-                        child: Center(
-                          child: Text(w,
-                              style:
-                                  TextStyle(fontSize: 12, color: dim)),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    for (var row = 0; row < 6; row++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            for (var col = 0; col < 7; col++) ...[
-                              Expanded(
-                                  child: _cell(context, offset, days,
-                                      row * 7 + col, today, s)),
-                              if (col != 6) const SizedBox(width: 4),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('${month.year} 年 ${month.month} 月',
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800)),
+                              Row(
+                                children: [
+                                  GestureDetector(
+                                      onTap: _prevMonth,
+                                      child: Icon(Icons.chevron_left,
+                                          color: dim)),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                      onTap: _nextMonth,
+                                      child: Icon(Icons.chevron_right,
+                                          color: dim)),
+                                ],
+                              ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                  ],
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              for (final w in const [
+                                '一',
+                                '二',
+                                '三',
+                                '四',
+                                '五',
+                                '六',
+                                '日'
+                              ])
+                                Expanded(
+                                  child: Center(
+                                    child: Text(w,
+                                        style: TextStyle(
+                                            fontSize: 12, color: dim)),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            children: [
+                              for (var row = 0; row < 6; row++)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    children: [
+                                      for (var col = 0; col < 7; col++) ...[
+                                        Expanded(
+                                            child: _cell(
+                                                context,
+                                                month,
+                                                offset,
+                                                mdays,
+                                                row * 7 + col,
+                                                today,
+                                                s)),
+                                        if (col != 6)
+                                          const SizedBox(width: 4),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               Padding(
@@ -453,7 +489,6 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ],
           ),
-          ),
         ),
         );
       },
@@ -503,12 +538,12 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Widget _cell(BuildContext c, int offset, int days, int idx, DateTime today,
-      AppState s) {
+  Widget _cell(BuildContext c, DateTime month, int offset, int days, int idx,
+      DateTime today, AppState s) {
     final dayNum = idx - offset + 1;
     if (dayNum < 1 || dayNum > days) return const SizedBox(height: 49);
-    final date = DateTime(_month.year, _month.month, dayNum);
-    final sp = s.specials[_key(dayNum)];
+    final date = DateTime(month.year, month.month, dayNum);
+    final sp = s.specials['${month.year}-${month.month}-$dayNum'];
     var effShift =
         shiftForDay(widget.store.engineMode, date, widget.store.cfg);
     if (sp != null && sp.type == 'shift') {
