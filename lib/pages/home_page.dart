@@ -246,8 +246,11 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(width: 8),
                         Text(
                           '$_status · +${(rate / 100).toStringAsFixed(2)}厘/秒',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.white),
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface),
                         ),
                       ],
                     ),

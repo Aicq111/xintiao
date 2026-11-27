@@ -12,7 +12,7 @@ function Get-LatestRuns {
   } catch { return $null }
 }
 
-$deadline = (Get-Date).AddHours(4)
+$deadline = (Get-Date).AddHours(8)
 $lastSha = ''
 while ((Get-Date) -lt $deadline) {
   $runs = Get-LatestRuns

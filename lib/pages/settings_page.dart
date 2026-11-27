@@ -363,6 +363,12 @@ class DisplaySettingsPage extends StatelessWidget {
         final s = store.state;
         final accent = Theme.of(context).colorScheme.primary;
         // 预览金额：节日彩蛋 > 发薪日 > 法定假日 3× / 周末 2× / 工作日 1.5×
+        // 按所选单位截断（不进位），保证 888.8888 等吉祥数字不因四舍五入变形
+        int eggForUnit(int fullMillis) {
+          final u = AppState.minUnitMillis[s.minUnitIdx];
+          return (fullMillis ~/ u) * u;
+        }
+
         final now = DateTime.now();
         final fun = FunNumbers.forDate(now);
         final isPayday =
@@ -372,13 +378,13 @@ class DisplaySettingsPage extends StatelessWidget {
         final int pMillis;
         final String pCaption;
         if (fun != null) {
-          pMillis = fun.$1;
+          pMillis = eggForUnit(fun.$1);
           pCaption = '${fun.$2}\n（预览数字，随所选单位显示不同精度）';
         } else if (isPayday) {
-          pMillis = 8888888;
+          pMillis = eggForUnit(8888888);
           pCaption = '💰 今天发薪日！888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）';
         } else {
-          pMillis = isHol ? 88888888 : 8888888;
+          pMillis = eggForUnit(isHol ? 88888888 : 8888888);
           pCaption = isHol
               ? '🏮 今天是法定节假日：8888.8888（加倍发）\n（预览数字，随所选单位显示不同精度）'
               : (isWk

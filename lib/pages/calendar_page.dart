@@ -345,13 +345,15 @@ class _CalendarPageState extends State<CalendarPage> {
               Expanded(
                 child: PageView.builder(
                   controller: _pageCtrl,
+                  allowImplicitScrolling: true,
                   onPageChanged: (p) => setState(() => _page = p),
                   itemBuilder: (ctx, p) {
                     final month = DateTime(_base.year, _base.month + p);
                     final offset =
                         DateTime(month.year, month.month, 1).weekday - 1;
                     final mdays = daysInMonth(month.year, month.month);
-                    return Column(
+                    return RepaintBoundary(
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
@@ -436,6 +438,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           ),
                         ),
                       ],
+                    ),
                     );
                   },
                 ),

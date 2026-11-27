@@ -27,14 +27,14 @@ class AppTheme {
   ];
 
   static const darkBgs = [
-    Color(0xFF0C241B),
-    Color(0xFF251D08),
-    Color(0xFF0C1D33),
-    Color(0xFF2B0E12),
-    Color(0xFF1C1230),
-    Color(0xFF280F1E),
-    Color(0xFF0A2221),
-    Color(0xFF182028),
+    Color(0xFF1A4434),
+    Color(0xFF40361A),
+    Color(0xFF16283E),
+    Color(0xFF461A1E),
+    Color(0xFF2E2248),
+    Color(0xFF431E33),
+    Color(0xFF123332),
+    Color(0xFF2A323D),
   ];
 
   static const lightBgs = [
@@ -66,13 +66,13 @@ class C {
   static bool isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
 
   static Color card(BuildContext c) =>
-      isDark(c) ? const Color(0xFF1B2537) : Colors.white;
+      isDark(c) ? const Color(0xFF243045) : Colors.white;
 
   static Color line(BuildContext c) =>
-      isDark(c) ? const Color(0xFF2A3A52) : const Color(0xFFE3E9F2);
+      isDark(c) ? const Color(0xFF35476B) : const Color(0xFFE3E9F2);
 
   static Color dim(BuildContext c) =>
-      isDark(c) ? const Color(0xFF93A9C6) : const Color(0xFF64748B);
+      isDark(c) ? const Color(0xFFA3B8D4) : const Color(0xFF64748B);
 
   static Color gold(BuildContext c) =>
       isDark(c) ? const Color(0xFFF5C451) : const Color(0xFFA67C00);
