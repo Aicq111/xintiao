@@ -375,21 +375,26 @@ class DisplaySettingsPage extends StatelessWidget {
             s.payRule == 'day' && s.payDay == now.day;
         final isHol = Holidays.isHoliday(now);
         final isWk = now.weekday >= 6;
+        // 节日彩蛋仅在「毫」单位解锁；其他单位用普通预览（不受影响）
+        final showEgg = fun != null && s.minUnitIdx == 4;
+        final eggHint = (fun != null && !showEgg)
+            ? '\n🥚 提示：显示单位选「毫」可解锁今天的节日彩蛋'
+            : '';
         final int pMillis;
         final String pCaption;
-        if (fun != null) {
-          pMillis = eggForUnit(fun.$1);
+        if (showEgg) {
+          pMillis = fun.$1;
           pCaption = '${fun.$2}\n（预览数字，随所选单位显示不同精度）';
         } else if (isPayday) {
           pMillis = eggForUnit(8888888);
-          pCaption = '💰 今天发薪日！888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）';
+          pCaption = '💰 今天发薪日！888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）$eggHint';
         } else {
           pMillis = eggForUnit(isHol ? 88888888 : 8888888);
           pCaption = isHol
-              ? '🏮 今天是法定节假日：8888.8888（加倍发）\n（预览数字，随所选单位显示不同精度）'
+              ? '🏮 今天是法定节假日：8888.8888（加倍发）\n（预览数字，随所选单位显示不同精度）$eggHint'
               : (isWk
-                  ? '☀️ 今天是周末：888.8888（休息也发发发）\n（预览数字，随所选单位显示不同精度）'
-                  : '💼 今天是工作日：888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）');
+                  ? '☀️ 今天是周末：888.8888（休息也发发发）\n（预览数字，随所选单位显示不同精度）$eggHint'
+                  : '💼 今天是工作日：888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）$eggHint');
         }
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
