@@ -1,7 +1,7 @@
-# Auto retry build loop until success (ASCII only for PS 5.1 GBK safety)
+# Auto retry build loop until success (ASCII only; paths derived from script location)
 $ErrorActionPreference = 'Continue'
-$repo = 'D:\deepseek工作区\薪跳App'
-$out = 'D:\deepseek工作区\装机文件\build_status.txt'
+$repo = Split-Path -Parent $PSScriptRoot
+$out = Join-Path $repo 'build_status.txt'
 $headers = @{ 'User-Agent' = 'xintiao-check' }
 $env:Path = 'C:\Program Files\Git\cmd;C:\Program Files\Git\bin;' + $env:Path
 Set-Location $repo

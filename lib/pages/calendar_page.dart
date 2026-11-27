@@ -3,6 +3,7 @@
 // ============================================================
 import 'package:flutter/material.dart';
 import '../core/engine.dart';
+import '../core/holidays.dart';
 import '../core/ocr_service.dart';
 import 'rotation_editor.dart';
 import '../core/store.dart';
@@ -218,6 +219,8 @@ class _CalendarPageState extends State<CalendarPage> {
         existing: existing,
         defaultShiftIdx: _defaultShiftIdx(),
         dayMillis: dayMillis,
+        isHoliday: widget.store.state.holidayMark && Holidays.isHoliday(date),
+        isMakeup: widget.store.state.holidayMark && Holidays.isMakeup(date),
       ),
     );
     if (result == null) return;
@@ -513,6 +516,9 @@ class _CalendarPageState extends State<CalendarPage> {
     }
     final rest = effShift == null;
     final label = rest ? '休' : _shiftLabel(effShift!);
+    // 节假日标注：法定假日显示「节」（金色），调休上班日蓝底
+    final isHoliday = s.holidayMark && Holidays.isHoliday(date);
+    final isMakeup = s.holidayMark && Holidays.isMakeup(date);
     final isToday = date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
@@ -551,10 +557,18 @@ class _CalendarPageState extends State<CalendarPage> {
     final cellBorder = isToday
         ? accent
         : (spColor ?? (rest ? Colors.transparent : C.line(c)));
-    final cellBg = spBg ??
-        (rest ? C.card(c).withAlpha(46) : C.card(c));
-    final showLabel = spLabel ?? label;
-    final labelColor = spColor ?? (rest ? C.dim(c) : accent);
+    var cellBg = spBg ?? (rest ? C.card(c).withAlpha(46) : C.card(c));
+    var showLabel = spLabel ?? label;
+    var labelColor = spColor ?? (rest ? C.dim(c) : accent);
+    // 节假日/调休上班日视觉
+    if (sp == null && isHoliday) {
+      cellBg = C.goldDim(c);
+      showLabel = '节';
+      labelColor = C.gold(c);
+    } else if (sp == null && isMakeup) {
+      cellBg = C.blueDim(c);
+      labelColor = C.blue(c);
+    }
     final dayColor = rest ? C.dim(c) : null;
     return GestureDetector(
       onTap: () => _openDay(dayNum),
@@ -609,12 +623,16 @@ class _DaySheet extends StatefulWidget {
   final SpecialDayData? existing;
   final int defaultShiftIdx;
   final int dayMillis;
+  final bool isHoliday;
+  final bool isMakeup;
   const _DaySheet({
     required this.date,
     required this.shift,
     required this.existing,
     required this.defaultShiftIdx,
     required this.dayMillis,
+    required this.isHoliday,
+    required this.isMakeup,
   });
 
   @override
@@ -635,7 +653,11 @@ class _DaySheetState extends State<_DaySheet> {
     super.initState();
     final e = widget.existing;
     _sel = e?.type ?? 'none';
-    _mult = e?.mult ?? 1.5;
+    // 休息日加班默认倍率：法定假日 3×、周末 2×、工作日 1.5×
+    _mult = e?.mult ??
+        (widget.shift == null
+            ? (widget.isHoliday ? 3.0 : 2.0)
+            : 1.5);
     _sub = _leaveSubOf(e);
   }
 
@@ -792,12 +814,26 @@ class _DaySheetState extends State<_DaySheet> {
                   mult: 1.5),
               _chip(context, '加班 2.0×', 'overtime', C.red(context),
                   mult: 2.0),
+              _chip(context, '加班 3.0×', 'overtime', C.red(context),
+                  mult: 3.0),
               _chip(context, '自定义倍率', 'overtime', C.red(context),
                   custom: true),
               _chip(context, '请假', 'leave', accent),
               _chip(context, '调休', 'off', C.blue(context)),
             ],
           ),
+          if (_sel == 'overtime' && (widget.isHoliday || widget.isMakeup)) ...[
+            const SizedBox(height: 6),
+            Text(
+              widget.isHoliday
+                  ? '🏮 今日是法定节假日：按 3 倍工资计'
+                  : '📅 今日是调休上班日：按公司规定计',
+              style: TextStyle(
+                  fontSize: 11,
+                  color: C.gold(context),
+                  fontWeight: FontWeight.w600),
+            ),
+          ],
           if (_sel == 'overtime') ...[
             const SizedBox(height: 12),
             Row(
