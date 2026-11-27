@@ -378,13 +378,12 @@ class DisplaySettingsPage extends StatelessWidget {
           pMillis = 8888888;
           pCaption = '💰 今天发薪日！888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）';
         } else {
-          final pMult = isHol ? 3.0 : (isWk ? 2.0 : 1.5);
-          pMillis = (5201314 * pMult).round();
+          pMillis = isHol ? 88888888 : 8888888;
           pCaption = isHol
-              ? '🏮 今天是法定节假日：5201314 × 3 倍工资 💝\n（预览数字，随所选单位显示不同精度）'
+              ? '🏮 今天是法定节假日：8888.8888（加倍发）\n（预览数字，随所选单位显示不同精度）'
               : (isWk
-                  ? '☀️ 今天是周末：5201314 × 2 倍工资 💝\n（预览数字，随所选单位显示不同精度）'
-                  : '💼 今天是工作日：5201314 × 1.5 倍工资 💝\n（预览数字，随所选单位显示不同精度）');
+                  ? '☀️ 今天是周末：888.8888（休息也发发发）\n（预览数字，随所选单位显示不同精度）'
+                  : '💼 今天是工作日：888.8888（发发发发）\n（预览数字，随所选单位显示不同精度）');
         }
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
