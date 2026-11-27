@@ -517,20 +517,45 @@ class _CalendarPageState extends State<CalendarPage> {
         date.month == today.month &&
         date.day == today.day;
     final accent = Theme.of(c).colorScheme.primary;
-    // 修改过的日期（特殊日/排班覆盖）高亮：彩色边框 + 浅色底
+    // 特殊日整格填色：一眼分辨 加班(金) / 请假(灰) / 调休(蓝) / 排班覆盖(蓝)
     Color? spColor;
+    Color? spBg;
+    String? spLabel;
     if (sp != null) {
-      spColor = switch (sp.type) {
-        'overtime' => C.gold(c),
-        'leave' || 'rest' || 'shift' || _ => C.blue(c),
-      };
+      switch (sp.type) {
+        case 'overtime':
+          spColor = C.gold(c);
+          spBg = C.goldDim(c);
+          spLabel = '${sp.mult.toStringAsFixed(1)}×';
+          break;
+        case 'leave':
+          spColor = C.dim(c);
+          spBg = C.card(c);
+          spLabel = '假';
+          break;
+        case 'off':
+          spColor = C.blue(c);
+          spBg = C.blueDim(c);
+          spLabel = '调';
+          break;
+        case 'shift':
+          spColor = C.blue(c);
+          spBg = C.blueDim(c);
+          spLabel =
+              SpecialDayData.presetShifts[sp.shiftIdx].name.substring(0, 1);
+          break;
+        default:
+          break; // rest：与普通休息日一致
+      }
     }
     final cellBorder = isToday
         ? accent
         : (spColor ?? (rest ? Colors.transparent : C.line(c)));
-    final cellBg = spColor != null
-        ? spColor.withAlpha(26)
-        : (rest ? C.card(c).withAlpha(46) : C.card(c));
+    final cellBg = spBg ??
+        (rest ? C.card(c).withAlpha(46) : C.card(c));
+    final showLabel = spLabel ?? label;
+    final labelColor = spColor ?? (rest ? C.dim(c) : accent);
+    final dayColor = rest ? C.dim(c) : null;
     return GestureDetector(
       onTap: () => _openDay(dayNum),
       child: Container(
@@ -546,82 +571,31 @@ class _CalendarPageState extends State<CalendarPage> {
               ? [BoxShadow(color: accent.withAlpha(50), blurRadius: 10)]
               : null,
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$dayNum',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight:
-                          isToday ? FontWeight.w800 : FontWeight.w600,
-                      color: rest ? C.dim(c) : null,
-                    ),
-                  ),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      color: rest ? C.dim(c) : accent,
-                    ),
-                  ),
-                ],
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$dayNum',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight:
+                      isToday ? FontWeight.w800 : FontWeight.w600,
+                  color: dayColor,
+                ),
               ),
-            ),
-            if (sp != null)
-              Positioned(top: -5, right: -3, child: _badge(c, sp)),
-          ],
+              Text(
+                showLabel,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: labelColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _badge(BuildContext c, SpecialDayData sp) {
-    Color fg, bg;
-    String text;
-    switch (sp.type) {
-      case 'overtime':
-        text = sp.mult <= 1.5
-            ? '${sp.mult.toStringAsFixed(1)}×'
-            : '${sp.mult.toStringAsFixed(1)}×';
-        fg = sp.mult <= 1.5 ? C.gold(c) : C.red(c);
-        bg = sp.mult <= 1.5 ? C.goldDim(c) : C.redDim(c);
-        break;
-      case 'leave':
-        text = '假';
-        fg = C.dim(c);
-        bg = C.card(c);
-        break;
-      case 'shift':
-        text = SpecialDayData.presetShifts[sp.shiftIdx].name.substring(0, 1);
-        fg = C.blue(c);
-        bg = C.blueDim(c);
-        break;
-      case 'rest':
-        text = '休';
-        fg = C.dim(c);
-        bg = C.card(c);
-        break;
-      default:
-        text = '调';
-        fg = C.blue(c);
-        bg = C.blueDim(c);
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: C.line(c), width: 0.5),
-      ),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 9, fontWeight: FontWeight.w700, color: fg)),
     );
   }
 }

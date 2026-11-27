@@ -424,7 +424,7 @@ class DisplaySettingsPage extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      '¥ ${s.formatMoney(3456789)} 元',
+                      '¥ ${s.formatMoney(5201314)} 元',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 28,
@@ -435,9 +435,8 @@ class DisplaySettingsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      s.autoPrecision
-                          ? '当前工资水平下，主页将自动显示到「厘」以保证每秒跳动'
-                          : '自动精度已关闭，按所选单位显示',
+                      '5201314 · 我爱你，一生一世 💝\n（预览数字，随所选单位显示不同精度）',
+                      textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: C.dim(context)),
                     ),
                   ],
