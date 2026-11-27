@@ -11,14 +11,14 @@ class WidgetBridge {
   static const _channel = MethodChannel('com.xintiao.widget');
 
   static const accentHex = [
-    '#34D399',
-    '#F0C24B',
-    '#60A5FA',
-    '#F87171',
-    '#B388FF',
-    '#F2A6C4',
-    '#2DD4BF',
-    '#C9D3E4',
+    '#3DDCA5',
+    '#FFD257',
+    '#7AB8FF',
+    '#FF8585',
+    '#C39BFF',
+    '#FFB4CF',
+    '#3FE0CC',
+    '#D5DEEB',
   ];
 
   static Future<void> push(AppStore store, DateTime now) async {

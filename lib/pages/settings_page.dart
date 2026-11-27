@@ -3,6 +3,7 @@
 // ============================================================
 import 'package:flutter/material.dart';
 import '../core/backup_service.dart';
+import '../core/holidays.dart';
 import 'rotation_editor.dart';
 import 'mode_shift_editor.dart';
 import '../core/store.dart';
@@ -361,6 +362,17 @@ class DisplaySettingsPage extends StatelessWidget {
       builder: (context, _) {
         final s = store.state;
         final accent = Theme.of(context).colorScheme.primary;
+        // 预览金额随节假日变化：法定假日 3× / 周末 2× / 工作日 1.5×
+        final now = DateTime.now();
+        final isHol = Holidays.isHoliday(now);
+        final isWk = now.weekday >= 6;
+        final pMult = isHol ? 3.0 : (isWk ? 2.0 : 1.5);
+        final pMillis = (5201314 * pMult).round();
+        final pCaption = isHol
+            ? '🏮 今天是法定节假日：5201314 × 3 倍工资 💝\n（预览数字，随所选单位显示不同精度）'
+            : (isWk
+                ? '☀️ 今天是周末：5201314 × 2 倍工资 💝\n（预览数字，随所选单位显示不同精度）'
+                : '💼 今天是工作日：5201314 × 1.5 倍工资 💝\n（预览数字，随所选单位显示不同精度）');
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
@@ -424,7 +436,7 @@ class DisplaySettingsPage extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      '¥ ${s.formatMoney(5201314)} 元',
+                      '¥ ${s.formatMoney(pMillis)} 元',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 28,
@@ -435,7 +447,7 @@ class DisplaySettingsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '5201314 · 我爱你，一生一世 💝\n（预览数字，随所选单位显示不同精度）',
+                      pCaption,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: C.dim(context)),
                     ),
