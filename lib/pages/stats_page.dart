@@ -179,14 +179,18 @@ class _StatsPageState extends State<StatsPage> {
               10000.0;
         }
 
-        // 加班 / 请假小时（本月截至今天）
-        var otHours = 0.0, lvHours = 0.0;
+        // 加班 / 请假 / 正常班小时（本月截至今天）
+        var otHours = 0.0, lvHours = 0.0, normalHours = 0.0;
         for (var d = 1; d <= days; d++) {
           final ivs = dayIntervals(
               DateTime(now.year, now.month, d), mode, specials, cfg);
           for (final iv in ivs) {
             final h = (iv.endMinAbs - iv.startMinAbs) / 60.0;
-            if (iv.mult > 1.0) otHours += h;
+            if (iv.mult > 1.0) {
+              otHours += h;
+            } else {
+              normalHours += h;
+            }
           }
           final sp = specials['${now.year}-${now.month}-$d'];
           if (sp != null &&
@@ -196,6 +200,7 @@ class _StatsPageState extends State<StatsPage> {
             lvHours += (sp.leaveEndMin! - sp.leaveStartMin!) / 60.0;
           }
         }
+        final hoursTotal = normalHours + otHours + lvHours;
 
         return SafeArea(
           child: Column(
@@ -284,6 +289,59 @@ class _StatsPageState extends State<StatsPage> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: C.line(context)),
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('工时构成（本月至今）',
+                              style: TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 88,
+                                height: 88,
+                                child: CustomPaint(
+                                  painter: _PiePainter(
+                                    values: [
+                                      normalHours,
+                                      otHours,
+                                      lvHours
+                                    ],
+                                    colors: [
+                                      accent,
+                                      C.gold(context),
+                                      C.blue(context)
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _pieLegend(context, '正常班',
+                                        normalHours, hoursTotal, accent),
+                                    _pieLegend(context, '加班', otHours,
+                                        hoursTotal, C.gold(context)),
+                                    _pieLegend(context, '请假', lvHours,
+                                        hoursTotal, C.blue(context)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: C.card(context),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: C.line(context)),
+                      ),
                       child: Row(
                         children: [
                           Expanded(
@@ -312,7 +370,7 @@ class _StatsPageState extends State<StatsPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                _tab == 0 ? '本月累计增长（按天）' : '近 6 个月累计（元）',
+                                _tab == 0 ? '每日收入（元）' : '近 6 个月累计（元）',
                                 style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700),
@@ -353,24 +411,11 @@ class _StatsPageState extends State<StatsPage> {
                             child: CustomPaint(
                               size: Size.infinite,
                               painter: _tab == 0
-                                  ? _CurvePainter(
-                                      series: series,
+                                  ? _DayBarsPainter(
                                       totals: totals,
-                                      colors: [
-                                        for (var i = 0;
-                                            i < incomes.length;
-                                            i++)
-                                          _seriesColor(context, i)
-                                      ],
-                                      maxY: maxY,
-                                      overtimeDays: otDays,
-                                      leaveDays: lvDays,
-                                      offDays: ofDays,
-                                      accent: accent,
-                                      lineColor: C.line(context),
+                                      today: now.day,
+                                      color: accent,
                                       dimColor: dim,
-                                      goldColor: C.gold(context),
-                                      blueColor: C.blue(context),
                                     )
                                   : _BarsPainter(
                                       values: monthVals,
@@ -384,7 +429,7 @@ class _StatsPageState extends State<StatsPage> {
                           if (_tab == 0) ...[
                             const SizedBox(height: 4),
                             Text(
-                              '● 金色 = 加班日 ｜ ● 灰 = 请假 ｜ ● 蓝 = 调休 ｜ 虚线 = 今天',
+                              '每天一根柱子 = 当天收入 · 金色 = 今天 · 越高赚得越多',
                               style: TextStyle(fontSize: 10, color: dim),
                             ),
                           ],
@@ -472,6 +517,30 @@ class _StatsPageState extends State<StatsPage> {
                     fontSize: 13, fontWeight: FontWeight.w700, color: color)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _pieLegend(
+      BuildContext c, String label, double hours, double total, Color color) {
+    final pct = total > 0 ? (hours / total * 100).toStringAsFixed(0) : '0';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+              child: Text(label,
+                  style: TextStyle(fontSize: 11, color: C.dim(c)))),
+          Text('${hours.toStringAsFixed(1)} 小时 · $pct%',
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -703,4 +772,88 @@ class _BarsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BarsPainter old) => true;
+}
+
+
+// ============================================================
+// 饼图画笔（工时构成）
+// ============================================================
+class _PiePainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+  _PiePainter({required this.values, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold<double>(0, (a, b) => a + b);
+    final rect = Rect.fromCircle(
+        center: size.center(Offset.zero), radius: size.width / 2 - 4);
+    if (total <= 0) {
+      canvas.drawCircle(rect.center, rect.width / 2,
+          Paint()..color = const Color(0x66888888));
+      return;
+    }
+    final paint = Paint()..style = PaintingStyle.fill;
+    var start = -3.141592653589793 / 2;
+    for (var i = 0; i < values.length; i++) {
+      final sweep = values[i] / total * 3.141592653589793 * 2;
+      paint.color = colors[i];
+      canvas.drawArc(rect, start, sweep, true, paint);
+      start += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PiePainter old) =>
+      old.values != values || old.colors != colors;
+}
+
+// ============================================================
+// 每日收入柱状图画笔（简洁明了）
+// ============================================================
+class _DayBarsPainter extends CustomPainter {
+  final List<double> totals;
+  final int today;
+  final Color color;
+  final Color dimColor;
+  _DayBarsPainter({
+    required this.totals,
+    required this.today,
+    required this.color,
+    required this.dimColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (totals.isEmpty) return;
+    final maxY = totals.fold<double>(1, (a, b) => a > b ? a : b);
+    final n = totals.length;
+    final slot = size.width / n;
+    final barW = (slot * 0.55).clamp(2.0, 9.0);
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (var i = 0; i < n; i++) {
+      final h = totals[i] / maxY * (size.height - 26);
+      final x = i * slot + (slot - barW) / 2;
+      final r = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, size.height - 26 - h, barW, h),
+        const Radius.circular(2),
+      );
+      paint.color = (i + 1 == today)
+          ? const Color(0xFFFFDB70)
+          : color.withAlpha(190);
+      canvas.drawRRect(r, paint);
+    }
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+    for (final d in [1, 10, 20, n]) {
+      tp.text = TextSpan(
+          text: '', style: TextStyle(fontSize: 9, color: dimColor));
+      tp.layout();
+      tp.paint(canvas,
+          Offset((d - 1) * slot + slot / 2 - tp.width / 2, size.height - 14));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DayBarsPainter old) =>
+      old.totals != totals || old.today != today;
 }

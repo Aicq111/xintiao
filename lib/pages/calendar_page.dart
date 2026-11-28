@@ -32,6 +32,58 @@ class _CalendarPageState extends State<CalendarPage> {
   int _specialCount = 0;
   bool _ocrBusy = false;
 
+  // 批量标记模式：在日历上点选/划选日期
+  bool _batchMode = false;
+  final Set<int> _batchSel = {};
+
+  void _selAt(Offset pos, double gw, int offset, int mdays) {
+    final cellW = (gw - 24) / 7;
+    const cellH = 53.0; // 49 + 4 行间距
+    final col = (pos.dx / cellW).floor().clamp(0, 6);
+    final row = (pos.dy / cellH).floor().clamp(0, 5);
+    final day = row * 7 + col - offset + 1;
+    if (day < 1 || day > mdays) return;
+    setState(() {
+      if (!_batchSel.add(day)) _batchSel.remove(day);
+    });
+  }
+
+  void _applyBatch(String type, double mult) {
+    if (_batchSel.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('先在日历上点选或滑动选择日期')));
+      return;
+    }
+    widget.store.update((st) {
+      for (final d in _batchSel) {
+        final k = '${_month.year}-${_month.month}-$d';
+        switch (type) {
+          case 'clear':
+            st.specials.remove(k);
+            break;
+          case 'off':
+            st.specials[k] = SpecialDayData(type: 'off');
+            break;
+          case 'leave':
+            st.specials[k] =
+                SpecialDayData(type: 'leave', leaveStart: 0, leaveEnd: 1440);
+            break;
+          case 'overtime':
+            st.specials[k] = SpecialDayData(
+                type: 'overtime', mult: mult, shiftIdx: _defaultShiftIdx());
+            break;
+        }
+      }
+    });
+    final n = _batchSel.length;
+    setState(() {
+      _batchMode = false;
+      _batchSel.clear();
+    });
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('已批量标记 $n 天')));
+  }
+
   void _recalcSummary(AppState s) {
     final buf = StringBuffer(
         '${_month.year}-${_month.month}-${s.schedule.mode}-');
@@ -293,8 +345,15 @@ class _CalendarPageState extends State<CalendarPage> {
                           _openRotationEditor),
                     ],
                     const SizedBox(width: 8),
-                    _actionChip(context, accent, Icons.event_repeat,
-                        '批量标记', _openBatchSheet),
+                    _actionChip(
+                        context,
+                        accent,
+                        Icons.event_repeat,
+                        _batchMode ? '批量标记中' : '批量标记',
+                        () => setState(() {
+                              _batchMode = !_batchMode;
+                              _batchSel.clear();
+                            })),
                   ],
                 ),
               ),
@@ -346,6 +405,9 @@ class _CalendarPageState extends State<CalendarPage> {
                 child: PageView.builder(
                   controller: _pageCtrl,
                   allowImplicitScrolling: true,
+                  physics: _batchMode
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
                   onPageChanged: (p) => setState(() => _page = p),
                   itemBuilder: (ctx, p) {
                     final month = DateTime(_base.year, _base.month + p);
@@ -353,7 +415,9 @@ class _CalendarPageState extends State<CalendarPage> {
                         DateTime(month.year, month.month, 1).weekday - 1;
                     final mdays = daysInMonth(month.year, month.month);
                     return RepaintBoundary(
-                      child: Column(
+                      child: Container(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
@@ -410,39 +474,143 @@ class _CalendarPageState extends State<CalendarPage> {
                         Padding(
                           padding:
                               const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            children: [
-                              for (var row = 0; row < 6; row++)
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 4),
-                                  child: Row(
-                                    children: [
-                                      for (var col = 0; col < 7; col++) ...[
-                                        Expanded(
-                                            child: _cell(
-                                                context,
-                                                month,
-                                                offset,
-                                                mdays,
-                                                row * 7 + col,
-                                                today,
-                                                s)),
-                                        if (col != 6)
-                                          const SizedBox(width: 4),
+                          child: _batchMode
+                              ? LayoutBuilder(
+                                  builder: (lctx, cons) {
+                                    final gw = cons.maxWidth;
+                                    Widget grid = Column(
+                                      children: [
+                                        for (var row = 0; row < 6; row++)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 4),
+                                            child: Row(
+                                              children: [
+                                                for (var col = 0;
+                                                    col < 7;
+                                                    col++) ...[
+                                                  Expanded(
+                                                      child: _cell(
+                                                          context,
+                                                          month,
+                                                          offset,
+                                                          mdays,
+                                                          row * 7 + col,
+                                                          today,
+                                                          s)),
+                                                  if (col != 6)
+                                                    const SizedBox(
+                                                        width: 4),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
                                       ],
-                                    ],
-                                  ),
+                                    );
+                                    return Stack(
+                                      children: [
+                                        grid,
+                                        Positioned.fill(
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior
+                                                .translucent,
+                                            onTapDown: (d) => _selAt(
+                                                d.localPosition,
+                                                gw,
+                                                offset,
+                                                mdays),
+                                            onPanStart: (d) => _selAt(
+                                                d.localPosition,
+                                                gw,
+                                                offset,
+                                                mdays),
+                                            onPanUpdate: (d) => _selAt(
+                                                d.localPosition,
+                                                gw,
+                                                offset,
+                                                mdays),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                )
+                              : Column(
+                                  children: [
+                                    for (var row = 0; row < 6; row++)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            bottom: 4),
+                                        child: Row(
+                                          children: [
+                                            for (var col = 0;
+                                                col < 7;
+                                                col++) ...[
+                                              Expanded(
+                                                  child: _cell(
+                                                      context,
+                                                      month,
+                                                      offset,
+                                                      mdays,
+                                                      row * 7 + col,
+                                                      today,
+                                                      s)),
+                                              if (col != 6)
+                                                const SizedBox(width: 4),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                            ],
-                          ),
                         ),
                       ],
                     ),
+                      ),
                     );
                   },
                 ),
               ),
+              if (_batchMode)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: C.accentDim(context),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: accent.withAlpha(160)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '已选 ${_batchSel.length} 天 · 点击或滑动日期选择',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: accent),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _batchChip('加班 1.5×', () => _applyBatch('overtime', 1.5)),
+                            _batchChip('加班 2.0×', () => _applyBatch('overtime', 2.0)),
+                            _batchChip('加班 3.0×', () => _applyBatch('overtime', 3.0)),
+                            _batchChip('请假整天', () => _applyBatch('leave', 1.0)),
+                            _batchChip('调休', () => _applyBatch('off', 1.0)),
+                            _batchChip('清除标记', () => _applyBatch('clear', 1.0)),
+                            _batchChip('取消', () => setState(() {
+                                  _batchMode = false;
+                                  _batchSel.clear();
+                                })),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
                 child: Wrap(
@@ -495,6 +663,26 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
         );
       },
+    );
+  }
+
+  Widget _batchChip(String label, VoidCallback onTap) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: C.line(context)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accent)),
+      ),
     );
   }
 
@@ -592,10 +780,15 @@ class _CalendarPageState extends State<CalendarPage> {
           break; // rest：与普通休息日一致
       }
     }
-    final cellBorder = isToday
+    final selected = _batchMode && _batchSel.contains(dayNum);
+    final cellBorder = selected
         ? accent
-        : (spColor ?? (rest ? Colors.transparent : C.line(c)));
-    var cellBg = spBg ?? (rest ? C.card(c).withAlpha(46) : C.card(c));
+        : (isToday
+            ? accent
+            : (spColor ?? (rest ? Colors.transparent : C.line(c))));
+    var cellBg = selected
+        ? C.accentDim(c)
+        : (spBg ?? (rest ? C.card(c).withAlpha(46) : C.card(c)));
     var showLabel = spLabel ?? label;
     var labelColor = spColor ?? (rest ? C.dim(c) : accent);
     // 节假日/调休上班日视觉
@@ -607,6 +800,9 @@ class _CalendarPageState extends State<CalendarPage> {
       cellBg = C.blueDim(c);
       labelColor = C.blue(c);
     }
+    final cellBorderWidth = selected
+        ? 2.0
+        : ((isToday || spColor != null) ? 1.4 : 0.8);
     final dayColor = rest ? C.dim(c) : null;
     return GestureDetector(
       onTap: () => _openDay(dayNum),
@@ -617,7 +813,7 @@ class _CalendarPageState extends State<CalendarPage> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: cellBorder,
-            width: (isToday || spColor != null) ? 1.4 : 0.8,
+            width: cellBorderWidth,
           ),
           boxShadow: isToday
               ? [BoxShadow(color: accent.withAlpha(50), blurRadius: 10)]
