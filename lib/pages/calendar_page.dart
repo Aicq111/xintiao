@@ -35,17 +35,38 @@ class _CalendarPageState extends State<CalendarPage> {
   // 批量标记模式：在日历上点选/划选日期
   bool _batchMode = false;
   final Set<int> _batchSel = {};
+  int _lastSelIdx = -1;
 
-  void _selAt(Offset pos, double gw, int offset, int mdays) {
+  int _idxAt(Offset pos, double gw, int offset, int mdays) {
     final cellW = (gw - 24) / 7;
     const cellH = 53.0; // 49 + 4 行间距
     final col = (pos.dx / cellW).floor().clamp(0, 6);
     final row = (pos.dy / cellH).floor().clamp(0, 5);
     final day = row * 7 + col - offset + 1;
-    if (day < 1 || day > mdays) return;
+    if (day < 1 || day > mdays) return -1;
+    return day;
+  }
+
+  void _toggle(int day) {
     setState(() {
       if (!_batchSel.add(day)) _batchSel.remove(day);
     });
+  }
+
+  void _onBatchGesture(Offset pos, double gw, int offset, int mdays,
+      {required bool isUpdate}) {
+    final day = _idxAt(pos, gw, offset, mdays);
+    if (day < 0) return;
+    if (isUpdate) {
+      // 拖动中：只在手指进入新格子时切换（避免同格反复开关导致“瞎取消”）
+      if (day != _lastSelIdx) {
+        _lastSelIdx = day;
+        _toggle(day);
+      }
+    } else {
+      _lastSelIdx = day;
+      _toggle(day);
+    }
   }
 
   void _applyBatch(String type, double mult) {
@@ -514,21 +535,26 @@ class _CalendarPageState extends State<CalendarPage> {
                                           child: GestureDetector(
                                             behavior: HitTestBehavior
                                                 .translucent,
-                                            onTapDown: (d) => _selAt(
+                                            onTapDown: (d) => _onBatchGesture(
                                                 d.localPosition,
                                                 gw,
                                                 offset,
-                                                mdays),
-                                            onPanStart: (d) => _selAt(
+                                                mdays,
+                                                isUpdate: false),
+                                            onPanStart: (d) => _onBatchGesture(
                                                 d.localPosition,
                                                 gw,
                                                 offset,
-                                                mdays),
-                                            onPanUpdate: (d) => _selAt(
+                                                mdays,
+                                                isUpdate: false),
+                                            onPanUpdate: (d) => _onBatchGesture(
                                                 d.localPosition,
                                                 gw,
                                                 offset,
-                                                mdays),
+                                                mdays,
+                                                isUpdate: true),
+                                            onPanEnd: (_) =>
+                                                _lastSelIdx = -1,
                                           ),
                                         ),
                                       ],

@@ -68,6 +68,8 @@ class _StatsPageState extends State<StatsPage> {
           }
         }
         final maxY = totals.fold<double>(1, (a, b) => a > b ? a : b);
+        final todayVal =
+            now.day - 1 < totals.length ? totals[now.day - 1] : 0.0;
 
         // 特殊日集合
         final otDays = <int>{}, lvDays = <int>{}, ofDays = <int>{};
@@ -406,6 +408,29 @@ class _StatsPageState extends State<StatsPage> {
                             ],
                           ),
                           const SizedBox(height: 8),
+                          if (_tab == 0) ...[
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('今日 ¥${todayVal.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: C.gold(context))),
+                                Text(
+                                    '本月累计 ¥${monthTotal.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: accent)),
+                                Text('最高 ¥${maxY.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontSize: 11, color: dim)),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                          ],
                           SizedBox(
                             height: 180,
                             child: CustomPaint(
@@ -844,12 +869,20 @@ class _DayBarsPainter extends CustomPainter {
       canvas.drawRRect(r, paint);
     }
     final tp = TextPainter(textDirection: TextDirection.ltr);
-    for (final d in [1, 10, 20, n]) {
+    for (var i = 0; i < n; i++) {
       tp.text = TextSpan(
-          text: '', style: TextStyle(fontSize: 9, color: dimColor));
+          text: '${i + 1}',
+          style: TextStyle(
+              fontSize: 8,
+              fontWeight: (i + 1 == today)
+                  ? FontWeight.w700
+                  : FontWeight.w400,
+              color:
+                  (i + 1 == today) ? const Color(0xFFFFDB70) : dimColor));
       tp.layout();
-      tp.paint(canvas,
-          Offset((d - 1) * slot + slot / 2 - tp.width / 2, size.height - 14));
+      tp.paint(
+          canvas,
+          Offset(i * slot + slot / 2 - tp.width / 2, size.height - 12));
     }
   }
 

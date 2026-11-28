@@ -16,25 +16,25 @@ class AppTheme {
   ];
 
   static const accents = [
-    Color(0xFF4FE3B0),
-    Color(0xFFFFDB70),
-    Color(0xFF8FC3FF),
-    Color(0xFFFF9A9A),
-    Color(0xFFD0AFFF),
-    Color(0xFFFFC2D9),
-    Color(0xFF55EBD8),
-    Color(0xFFE0E8F2),
+    Color(0xFF6DF0A8),
+    Color(0xFFFFE28A),
+    Color(0xFFA8D0FF),
+    Color(0xFFFFACAC),
+    Color(0xFFDDBEFF),
+    Color(0xFFFFD3E4),
+    Color(0xFF7DF5E0),
+    Color(0xFFEDF2FA),
   ];
 
   static const darkBgs = [
-    Color(0xFF1F5C46),
-    Color(0xFF5C4A1C),
-    Color(0xFF1F3A5C),
-    Color(0xFF63222A),
-    Color(0xFF43325F),
-    Color(0xFF5E2A48),
-    Color(0xFF1A4A48),
-    Color(0xFF3A4554),
+    Color(0xFF2E8B5E),
+    Color(0xFF8A6D20),
+    Color(0xFF2E5C8A),
+    Color(0xFF96333F),
+    Color(0xFF6A4FA0),
+    Color(0xFF8F4470),
+    Color(0xFF2E7C7A),
+    Color(0xFF5A6A80),
   ];
 
   static const lightBgs = [
